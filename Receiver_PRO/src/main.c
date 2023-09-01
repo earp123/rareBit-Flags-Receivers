@@ -142,7 +142,7 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
 	else if (!strcmp(page_addr, AR2_device))
 	{
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(400);
+		k_busy_wait(200);
 		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
 		k_busy_wait(200);
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
