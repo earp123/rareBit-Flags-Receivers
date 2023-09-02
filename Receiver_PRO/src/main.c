@@ -58,6 +58,8 @@
 #include "zephyr/mgmt/mcumgr/grp/fs_mgmt/fs_mgmt.h"
 #endif
 
+#define COMPILE_ONOFF 0
+
 #define RECEIVER_BUTTON_PIN	DT_GPIO_PIN(DT_ALIAS(sw0), gpios)
 //USB Pin
 
@@ -74,14 +76,22 @@ static K_THREAD_STACK_DEFINE(my_stack_area, WORQ_THREAD_STACK_SIZE);
 static struct k_work_q offload_work_q = {0};
 
 
-struct work_info {
+struct power_off_work_info {
     struct k_work work;
     char name[25];
-} my_work;
+} power_off_work;
+
+struct page_alert_work_info {
+    struct k_work work;
+    char name[25];
+} page_alert_work;
 
 //static struct bt_gatt_exchange_params mtu_exchange_params[CONFIG_BT_MAX_CONN];
 
 bool debounce_check = false;
+bool notify_check = false;
+
+int alert_type = 1; //just using 1 and 2 right now
 
 // TODO Need to modify default_conn to better handle multiple connections.
 //      Currently, only one of the connections are successfully
@@ -125,36 +135,20 @@ void start_advertising_dfu(void)
 
 static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char page_addr[MAC_ADDRESS_LEN]) // SWR future inputs go here
 {
-
-	printk("Notification, page_alert: %d\nDevice addr: %s\n", page_alert, page_addr);
-
-	if (!strcmp(page_addr, AR1_device))
+	if(!notify_check)
 	{
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(1000);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		k_busy_wait(1000);
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(1000);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		printk("Notification, page_alert: %d\nDevice addr: %s\n", page_alert, page_addr);
+
+		if (!strcmp(page_addr, AR1_device))
+		{
+			alert_type = 1;
+		}
+		else if (!strcmp(page_addr, AR2_device))
+		{
+			alert_type = 2;
+		}
 		
-	}
-	else if (!strcmp(page_addr, AR2_device))
-	{
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200);
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_work_submit_to_queue(&offload_work_q, &page_alert_work.work);
 	}
 
 	return BT_GATT_ITER_CONTINUE;
@@ -447,7 +441,7 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.disconnected = disconnected,
 };
 
-void offload_function(struct k_work *work_tem)
+void power_off_function(struct k_work *work_item)
 {
 
 	int button_held_time = 0;
@@ -455,7 +449,7 @@ void offload_function(struct k_work *work_tem)
 	{
 		k_busy_wait(100000);
 		button_held_time++;
-
+#if COMPILE_ONOFF
 		if (button_held_time > 40)//four seconds
 		{
 		
@@ -466,9 +460,57 @@ void offload_function(struct k_work *work_tem)
 			k_busy_wait(2000000);//give the user time to release the button
 			
 		}
+#endif
 	}
 		
 	printk("Work thread executed. \n");
+}
+
+void page_alert_function(struct k_work *work_item){
+
+	notify_check = true;
+	printk("Receiver work is happening.\n");
+
+	if (alert_type == 1){
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+	}
+	else{
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		k_busy_wait(200000);
+		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
+		k_busy_wait(500000);
+
+	}
+
+	notify_check = false;
+	
 }
 
 static void button_handler(nrfx_gpiote_pin_t pin, nrfx_gpiote_trigger_t trigger, void *context)
@@ -477,7 +519,7 @@ static void button_handler(nrfx_gpiote_pin_t pin, nrfx_gpiote_trigger_t trigger,
 	{
 		printk("GPIO input event callback\n");
 
-		k_work_submit_to_queue(&offload_work_q, &my_work.work);
+		k_work_submit_to_queue(&offload_work_q, &power_off_work.work);
 			
 	}
 	debounce_check = !debounce_check;
@@ -545,7 +587,7 @@ void main(void)
 
 	/* Configure to generate PORT event (wakeup) on button 1 press. */
 	nrf_gpio_cfg_sense_set(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_SENSE_LOW);
-
+#if COMPILE_ONOFF
 	int on_button_held = 0;
 	while (!nrf_gpio_pin_read(RECEIVER_BUTTON_PIN))
 	{
@@ -571,13 +613,16 @@ void main(void)
 	    k_msleep(2000);
 
 	}
-
+#endif
 	//Continues...
 	k_work_queue_start(&offload_work_q, my_stack_area,
 					K_THREAD_STACK_SIZEOF(my_stack_area), WORKQ_PRIORITY,
 					NULL);
-	strcpy(my_work.name, "Receiver Button Push thread");
-	k_work_init(&my_work.work, offload_function);
+	strcpy(power_off_work.name, "Receiver Button Push thread");
+	k_work_init(&power_off_work.work, power_off_function);
+
+	strcpy(page_alert_work.name, "Receiver Button Push thread");
+	k_work_init(&page_alert_work.work, page_alert_function);
 	
 
     //Initialize Button/Motor Peripherals
@@ -613,6 +658,6 @@ void main(void)
 
 	while(1)
 	{
-		k_msleep(300);
+		k_msleep(100);
 	} 
 }

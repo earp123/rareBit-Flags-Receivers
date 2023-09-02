@@ -1,6 +1,6 @@
 {
     "format-version": 0,
-    "time": 1693610457,
+    "time": 1693620500,
     "files": [
         {
             "load_address": 49664,
@@ -8,9 +8,9 @@
             "type": "application",
             "board": "nrf52840dk_nrf52840",
             "soc": "nRF52840_QIAA",
-            "size": 289787,
+            "size": 289611,
             "file": "app_update.bin",
-            "modtime": 1693610457
+            "modtime": 1693620500
         }
     ],
     "name": "Receiver_PRO",
