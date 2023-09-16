@@ -1,0 +1,25 @@
+{
+    "format-version": 0,
+    "time": 1694890059,
+    "files": [
+        {
+            "load_address": 49664,
+            "version_MCUBOOT": "0.0.0+0",
+            "type": "application",
+            "board": "rarebit_receiver",
+            "soc": "nRF52840_QIAA",
+            "size": 320823,
+            "file": "app_update.bin",
+            "modtime": 1694890058
+        }
+    ],
+    "name": "Receiver_PRO",
+    "firmware": {
+        "zephyr": {
+            "revision": "fcaa60a99fa9d5256078ed28557856ec3709cfa9-dirty"
+        },
+        "nrf": {
+            "revision": "8f26142b2f815d5a12e1f77ee8a6ea554a89b079"
+        }
+    }
+}

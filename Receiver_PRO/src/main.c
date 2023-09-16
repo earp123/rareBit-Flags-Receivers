@@ -58,13 +58,50 @@
 #include "zephyr/mgmt/mcumgr/grp/fs_mgmt/fs_mgmt.h"
 #endif
 
-#define COMPILE_ONOFF 0
+#define COMPILE_ONOFF 1
 
-#define RECEIVER_BUTTON_PIN	DT_GPIO_PIN(DT_ALIAS(sw0), gpios)
-//USB Pin
+#define ON_HOLD_TIME  4000
+#define OFF_HOLD_TIME 3000
 
-#define HAPTIC_MOTOR_PIN DT_GPIO_PIN(DT_ALIAS(led0), gpios)
-//RGB LED
+//Macros required to get absolute pin numbers for use with NRF GPIO API (stupid!)
+#define GET_GPIO_ID_OF_LED(LED_ID)	DT_PHANDLE_BY_IDX(LED_ID, gpios, 0)
+#define GET_PORT_OF_GPIO(GPIO_ID)	DT_PROP(GPIO_ID, port)
+
+#define GET_PORT(LED_ID)	GET_PORT_OF_GPIO(GET_GPIO_ID_OF_LED(LED_ID))
+#define GET_PIN(LED_ID)		DT_GPIO_PIN(LED_ID, gpios)
+
+#define LED0_ID 	DT_ALIAS(led0)
+#define LED1_ID 	DT_ALIAS(led1)
+#define LED2_ID 	DT_ALIAS(led2)
+#define LED3_ID 	DT_ALIAS(led3)
+#define PWR_ON_ID	DT_ALIAS(pwr_on)
+
+#define SW0_ID 		DT_ALIAS(sw0)
+#define SW1_ID 		DT_ALIAS(sw1)
+#define SW2_ID 		DT_ALIAS(sw2)
+
+#define GPIO1_PORT	GET_PORT(LED1_ID)
+
+#define LED0_PIN	GET_PIN(LED0_ID)
+#define LED1_PIN	GET_PIN(LED1_ID)
+#define LED2_PIN	GET_PIN(LED2_ID)
+#define LED3_PIN	GET_PIN(LED3_ID)
+#define PWR_ON_PIN  GET_PIN(PWR_ON_ID)
+
+#define SW0_PIN		GET_PIN(SW0_ID)
+#define SW1_PIN		GET_PIN(SW1_ID)
+#define SW2_PIN		GET_PIN(SW2_ID)
+
+#define RECEIVER_BUTTON_PIN	NRF_GPIO_PIN_MAP(GPIO1_PORT, SW0_PIN)
+#define USB_PIN	            NRF_GPIO_PIN_MAP(GPIO1_PORT, SW1_PIN)
+#define CHG_STAT_PIN	    NRF_GPIO_PIN_MAP(GPIO1_PORT, SW2_PIN)
+
+#define HAPTIC_MOTOR_PIN    NRF_GPIO_PIN_MAP(GPIO1_PORT, LED0_PIN)
+
+#define RED_LED_PIN       NRF_GPIO_PIN_MAP(GPIO1_PORT, LED1_PIN)
+#define GREEN_LED_PIN     NRF_GPIO_PIN_MAP(GPIO1_PORT, LED2_PIN)
+#define BLUE_LED_PIN      NRF_GPIO_PIN_MAP(GPIO1_PORT, LED3_PIN)
+#define PWR_ON_ABS_PIN 	  NRF_GPIO_PIN_MAP(GPIO1_PORT, PWR_ON_PIN)
 
 #define WORQ_THREAD_STACK_SIZE  4096
 #define WORKQ_PRIORITY   5
@@ -447,21 +484,27 @@ void power_off_function(struct k_work *work_item)
 	int button_held_time = 0;
 	while (!nrf_gpio_pin_read(RECEIVER_BUTTON_PIN))
 	{
-		k_busy_wait(100000);
+		k_busy_wait(1000);
 		button_held_time++;
-#if COMPILE_ONOFF
-		if (button_held_time > 40)//four seconds
+
+		if(button_held_time > (OFF_HOLD_TIME-1000))
+		{	
+			nrf_gpio_pin_set(GREEN_LED_PIN);
+		}	
+
+		if (button_held_time > OFF_HOLD_TIME)
 		{
-		
+			
 			pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 
 			printk("Powering Off...\n");
-
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+			
 			k_busy_wait(2000000);//give the user time to release the button
 			
 		}
-#endif
 	}
+	
 		
 	printk("Work thread executed. \n");
 }
@@ -472,8 +515,7 @@ void page_alert_function(struct k_work *work_item){
 	printk("Receiver work is happening.\n");
 
 	if (alert_type == 1){
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		k_busy_wait(500000);
+		
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
 		k_busy_wait(500000);
 		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
@@ -484,10 +526,11 @@ void page_alert_function(struct k_work *work_item){
 		k_busy_wait(500000);
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
 		k_busy_wait(500000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
+		
 	}
 	else{
-		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
-		k_busy_wait(200000);
+		
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
 		k_busy_wait(200000);
 		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
@@ -505,7 +548,8 @@ void page_alert_function(struct k_work *work_item){
 		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
 		k_busy_wait(200000);
 		nrf_gpio_pin_set(HAPTIC_MOTOR_PIN);
-		k_busy_wait(500000);
+		k_busy_wait(200000);
+		nrf_gpio_pin_clear(HAPTIC_MOTOR_PIN);
 
 	}
 
@@ -530,11 +574,9 @@ nrfx_err_t configure_haptic_button(void)
     nrfx_err_t err = NRFX_SUCCESS;
 	uint8_t in_channel;
 
-
     IRQ_CONNECT(DT_IRQN(DT_NODELABEL(gpiote)),
 		    DT_IRQ(DT_NODELABEL(gpiote), priority),
 		    nrfx_isr, nrfx_gpiote_irq_handler, 0);
-
 
 	err = nrfx_gpiote_init(0);
 	if (err != NRFX_SUCCESS) {
@@ -552,7 +594,7 @@ nrfx_err_t configure_haptic_button(void)
 	 * (falling edge) and call button_handler()
 	 */
 	static const nrfx_gpiote_input_config_t input_config = {
-		.pull = NRF_GPIO_PIN_PULLUP,
+		.pull = NRF_GPIO_PIN_NOPULL,
 	};
 	const nrfx_gpiote_trigger_config_t trigger_config = {
 		.trigger = NRFX_GPIOTE_TRIGGER_HITOLO,
@@ -578,29 +620,64 @@ nrfx_err_t configure_haptic_button(void)
 
 void main(void)
 {
+
+	nrf_gpio_cfg_output(PWR_ON_ABS_PIN);
+	nrf_gpio_pin_set(PWR_ON_ABS_PIN);
+
 	int err;
 
 	printk("~~~~~~~~~rareBit Receiver Demo~~~~~~~~~~~\n");
 
-	nrf_gpio_cfg_input(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
+	nrf_gpio_cfg_input(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_NOPULL);
+	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_NOPULL);
+	nrf_gpio_cfg_input(CHG_STAT_PIN, NRF_GPIO_PIN_NOPULL);
+
 	nrf_gpio_cfg_output(HAPTIC_MOTOR_PIN);
 
 	/* Configure to generate PORT event (wakeup) on button 1 press. */
 	nrf_gpio_cfg_sense_set(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_SENSE_LOW);
+	nrf_gpio_cfg_sense_set(USB_PIN, NRF_GPIO_PIN_SENSE_HIGH);
+
+	nrf_gpio_cfg_output(RED_LED_PIN);
+	nrf_gpio_cfg_output(GREEN_LED_PIN);
+	nrf_gpio_cfg_output(BLUE_LED_PIN);
+
+	
+
 #if COMPILE_ONOFF
+
 	int on_button_held = 0;
 	while (!nrf_gpio_pin_read(RECEIVER_BUTTON_PIN))
 	{
-		k_busy_wait(100000);
+		nrf_gpio_pin_set(GREEN_LED_PIN);
+		k_busy_wait(1000);
 		on_button_held++;
 
-		if (on_button_held > 40) break;//LED indicates
+		if (on_button_held > ON_HOLD_TIME)
+		{
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+			break;
+		} 
 
 		//TODO continue to select different modes, like DFU, 
 		//for on_button_held length values
 	}
+		
+	while(nrf_gpio_pin_read(USB_PIN))
+	{
+		nrf_gpio_pin_set(RED_LED_PIN);
+		k_msleep(1000);
+		while(nrf_gpio_pin_read(CHG_STAT_PIN))
+		{
+			nrf_gpio_pin_clear(RED_LED_PIN);
+			nrf_gpio_pin_set(GREEN_LED_PIN);
+		}	
+	}
 
-	if (on_button_held > 40)
+	nrf_gpio_pin_clear(RED_LED_PIN);
+	nrf_gpio_pin_clear(GREEN_LED_PIN);
+
+	if (on_button_held > ON_HOLD_TIME)
     {
         printk("Initializing...\n");
         k_busy_wait(2000000);
@@ -608,6 +685,7 @@ void main(void)
 	else
 	{
 		printk("Powering Off...\n");
+		nrf_gpio_pin_clear(GREEN_LED_PIN);
 
 		pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 	    k_msleep(2000);
@@ -621,7 +699,7 @@ void main(void)
 	strcpy(power_off_work.name, "Receiver Button Push thread");
 	k_work_init(&power_off_work.work, power_off_function);
 
-	strcpy(page_alert_work.name, "Receiver Button Push thread");
+	strcpy(page_alert_work.name, "Page Alert thread");
 	k_work_init(&page_alert_work.work, page_alert_function);
 	
 
@@ -630,6 +708,7 @@ void main(void)
     if (err != NRFX_SUCCESS)
     {
 		printk("Haptic Button config failed (err %d)\n", err);
+		nrf_gpio_pin_set(RED_LED_PIN);
         return;
     } 
 
@@ -637,12 +716,14 @@ void main(void)
 	if (err)
 	{
 		printk("Bluetooth init failed (err %d)\n", err);
+		//nrf_gpio_pin_set(RED_LED_PIN);
 		return;
 	}
 
 	printk("Bluetooth initialized\n");
 
-	smp_bt_register();
+	//TODO
+	//smp_bt_register();
 	//"E: Unable to register handle 0x0010"
 
 	scan_init();
@@ -651,6 +732,7 @@ void main(void)
 	if (err)
 	{
 		printk("Scanning failed to start (err %d)\n", err);
+		//nrf_gpio_pin_set(RED_LED_PIN);
 		return;
 	}
 
@@ -659,5 +741,6 @@ void main(void)
 	while(1)
 	{
 		k_msleep(100);
+		//TODO handle case of USB_PIN detected while on
 	} 
 }

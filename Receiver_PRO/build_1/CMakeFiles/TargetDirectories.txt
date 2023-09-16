@@ -67,10 +67,14 @@ D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/libc/minim
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/posix/CMakeFiles/lib__posix.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/posix/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/posix/CMakeFiles/rebuild_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/posix/getopt/CMakeFiles/edit_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/posix/getopt/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/os/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/os/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/util/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/util/CMakeFiles/rebuild_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/util/fnmatch/CMakeFiles/edit_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/lib/util/fnmatch/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/soc/arm/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/soc/arm/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/soc/arm/common/cortex_m/CMakeFiles/edit_cache.dir
@@ -101,6 +105,12 @@ D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/bluetoo
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/bluetooth/host/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/bluetooth/services/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/bluetooth/services/CMakeFiles/rebuild_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/CMakeFiles/edit_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/CMakeFiles/rebuild_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/modules/CMakeFiles/edit_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/modules/CMakeFiles/rebuild_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/backends/CMakeFiles/edit_cache.dir
+D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/backends/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/fs/CMakeFiles/subsys__fs.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/fs/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/fs/CMakeFiles/rebuild_cache.dir

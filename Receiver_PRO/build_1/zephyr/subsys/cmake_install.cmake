@@ -54,6 +54,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/shell/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/nordicsemi/rareBit-Flags-Receivers/Receiver_PRO/build_1/zephyr/subsys/fs/cmake_install.cmake")
 endif()
 

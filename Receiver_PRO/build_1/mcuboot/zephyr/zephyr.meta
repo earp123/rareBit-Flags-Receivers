@@ -122,7 +122,7 @@ west:
   - path: D:/ncs/v2.3.0/nrf
     revision: 8f26142b2f815d5a12e1f77ee8a6ea554a89b079
   - path: D:/ncs/v2.3.0/zephyr
-    revision: fcaa60a99fa9d5256078ed28557856ec3709cfa9
+    revision: fcaa60a99fa9d5256078ed28557856ec3709cfa9-dirty-off
   - path: D:/ncs/v2.3.0/modules/lib/hostap
     revision: 73de50a279b35adf345eae35231813d0945991fd
   - path: D:/ncs/v2.3.0/bootloader/mcuboot
@@ -206,9 +206,9 @@ west:
   - path: D:/ncs/v2.3.0/modules/lib/zscilib
     revision: ca070ddabdaf67175a2da901d0bd62e8899371c5
 workspace:
-  dirty: false
+  dirty: true
   extra: false
-  'off': false
+  'off': true
 zephyr:
   path: D:/ncs/v2.3.0/zephyr
-  revision: fcaa60a99fa9d5256078ed28557856ec3709cfa9
+  revision: fcaa60a99fa9d5256078ed28557856ec3709cfa9-dirty

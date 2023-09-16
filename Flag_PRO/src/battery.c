@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define OVERRIDE 0
 
+#if OVERRIDE
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,4 +248,5 @@ unsigned int battery_level_pptt(unsigned int batt_mV,
 		  * (batt_mV - pb->lvl_mV)
 		  / (pa->lvl_mV - pb->lvl_mV));
 }
+#endif
 

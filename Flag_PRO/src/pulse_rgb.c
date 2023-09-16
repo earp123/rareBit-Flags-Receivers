@@ -1,3 +1,4 @@
+/*
 #include <zephyr/kernel.h>
 
 #include <zephyr/device.h>
@@ -164,5 +165,5 @@ void pulse_blue(int num_pulses, bool fast){
 		return;
 	}
 
-}
+}*/
 

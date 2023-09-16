@@ -9,6 +9,8 @@
 #include <nrfx_ppi.h>
 #endif
 #include <zephyr/irq.h>
+//nrfx GPIO driver
+#include <hal/nrf_gpio.h>
 
 //For power manager
 #include <zephyr/device.h>
@@ -18,9 +20,6 @@
 #include <zephyr/pm/policy.h>
 #include <soc.h>
 
-//nrfx GPIO driver
-#include <hal/nrf_gpio.h>
-
 // Bluetooth include files
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
@@ -28,9 +27,10 @@
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/services/bas.h>
 
-#define COMPILE_BATTERY 1
-#define COMPILE_RGBLED 1
-#define COMPILE_ONOFF 0
+#define COMPILE_BATTERY 0
+#define COMPILE_RGBLED 0
+#define COMPILE_ONOFF 1
+#define COMPILE_DFU  0
 
 #if COMPILE_BATTERY
 #include <battery.h>
@@ -39,7 +39,8 @@
 #include <pulse_rgb.h>
 #endif
 
-
+#define ON_HOLD_TIME  4000
+#define OFF_HOLD_TIME 3000
 
 // SMP-related code
 #include <zephyr/mgmt/mcumgr/transport/smp_bt.h>
@@ -73,10 +74,15 @@
 
 
 #define PAGE_BUTTON_PIN	DT_GPIO_PIN(DT_ALIAS(sw0), gpios)
-//USB Pin
+#define USB_PIN	        DT_GPIO_PIN(DT_ALIAS(sw1), gpios)
+#define CHG_STAT_PIN	DT_GPIO_PIN(DT_ALIAS(sw2), gpios)
 
 #define HAPTIC_MOTOR_PIN DT_GPIO_PIN(DT_ALIAS(led0), gpios)
+
 //RGB LED
+#define RED_LED_PIN DT_GPIO_PIN(DT_ALIAS(led1), gpios)
+#define GREEN_LED_PIN DT_GPIO_PIN(DT_ALIAS(led2), gpios)
+#define BLUE_LED_PIN DT_GPIO_PIN(DT_ALIAS(led3), gpios)
 
 #define LOW_BATT_INDIACTE_MV 3000
 #define NORMAL_BATT_INDICATE_MV 3500
@@ -98,7 +104,7 @@
 #define BT_UUID_PAGE_ALERT_CHARACTERISTIC   BT_UUID_DECLARE_128(PAGE_ALERT_CHARACTERISTIC_UUID)
 
 #define WORQ_THREAD_STACK_SIZE  4096
-#define WORKQ_PRIORITY   5
+#define WORKQ_PRIORITY   4
 
 // Define stack area used by workqueue thread
 static K_THREAD_STACK_DEFINE(my_stack_area, WORQ_THREAD_STACK_SIZE);
@@ -106,7 +112,7 @@ static K_THREAD_STACK_DEFINE(my_stack_area, WORQ_THREAD_STACK_SIZE);
 // Define queue structure
 static struct k_work_q offload_work_q = {0};
 
-/* STEP 7 - Create work_info structure and offload function */
+
 struct work_info {
     struct k_work work;
     char name[25];
@@ -178,7 +184,12 @@ void start_advertising_coded(void)
         printk("Error: Advertising NOT started. return %d\n", err);
         
     }
-    else printk("Bluetooth advertising started!\n");
+    else 
+	{
+		printk("Bluetooth advertising started!\n");
+		nrf_gpio_pin_clear(BLUE_LED_PIN);
+	}
+
 }
 
 
@@ -238,6 +249,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 	}
 
 	nrfx_gpiote_out_task_enable(HAPTIC_MOTOR_PIN);
+	nrf_gpio_pin_set(BLUE_LED_PIN);
 
 }
 
@@ -301,7 +313,7 @@ void bt_pageAlert(struct bt_conn *conn, const uint8_t *data, uint16_t len)
         printk("Error, unable to send notification\n");
     }
     else {
-        printk("Notified Peer of %d\n", (uint8_t) &data);
+        printk("Notified Peer of %d\n", (int) &data);
     }
 
 }
@@ -317,20 +329,31 @@ void offload_function(struct k_work *work_tem)
 	int button_held_time = 0;
 	while (!nrf_gpio_pin_read(PAGE_BUTTON_PIN))
 	{
-		k_busy_wait(100000);
+		k_busy_wait(1000);
 		button_held_time++;
 
-		if (button_held_time > 40)//four seconds
+		if(button_held_time > (OFF_HOLD_TIME-1000))
+		{	
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+		}	
+
+		if (button_held_time > OFF_HOLD_TIME)
 		{
 		
 			pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 
 			printk("Powering Off...\n");
+			nrf_gpio_pin_set(GREEN_LED_PIN);
+			nrfx_gpiote_out_task_force(HAPTIC_MOTOR_PIN, 1);
 
 			k_busy_wait(2000000);//give the user time to release the button
 			
 		}
+
 	}
+	
+	nrf_gpio_pin_set(GREEN_LED_PIN);
+
 	nrfx_gpiote_out_task_force(HAPTIC_MOTOR_PIN, 1);
 		
 	printk("Work thread executed. \n");
@@ -355,10 +378,9 @@ nrfx_err_t configure_haptic_button(void)
     uint8_t out_channel;
     uint8_t ppi_channel;
 
-    IRQ_CONNECT(DT_IRQN(DT_NODELABEL(gpiote)),
+	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(gpiote)),
 		    DT_IRQ(DT_NODELABEL(gpiote), priority),
 		    nrfx_isr, nrfx_gpiote_irq_handler, 0);
-
 
 	err = nrfx_gpiote_init(0);
 	if (err != NRFX_SUCCESS) {
@@ -451,24 +473,53 @@ void main(void)
 	printk("~~~~~~~~~~rareBit Flag Demo~~~~~~~~~~~~~\n");
 
 	nrf_gpio_cfg_input(PAGE_BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
+	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_PULLUP);
+	nrf_gpio_cfg_input(CHG_STAT_PIN, NRF_GPIO_PIN_PULLUP);
 
 	/* Configure to generate PORT event (wakeup) on button 1 press. */
 	nrf_gpio_cfg_sense_set(PAGE_BUTTON_PIN, NRF_GPIO_PIN_SENSE_LOW);
+	nrf_gpio_cfg_sense_set(USB_PIN, NRF_GPIO_PIN_SENSE_LOW);
+
+	nrf_gpio_cfg_output(RED_LED_PIN);
+	nrf_gpio_cfg_output(GREEN_LED_PIN);
+	nrf_gpio_cfg_output(BLUE_LED_PIN);
+
+	nrf_gpio_pin_set(BLUE_LED_PIN);
 
 #if COMPILE_ONOFF
+	
+	while(!nrf_gpio_pin_read(USB_PIN))
+	{
+		nrf_gpio_pin_clear(RED_LED_PIN);
+		k_msleep(1000);
+		while(!nrf_gpio_pin_read(CHG_STAT_PIN))
+		{
+			nrf_gpio_pin_set(RED_LED_PIN);
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+		}	
+	}
+
+	nrf_gpio_pin_set(RED_LED_PIN);
+	nrf_gpio_pin_set(GREEN_LED_PIN);
+
 	int on_button_held = 0;
 	while (!nrf_gpio_pin_read(PAGE_BUTTON_PIN))
 	{
-		k_busy_wait(100000);
+		nrf_gpio_pin_clear(GREEN_LED_PIN);
+		k_busy_wait(1000);
 		on_button_held++;
 
-		if (on_button_held > 40) break;//LED indicates
+		if (on_button_held > ON_HOLD_TIME)
+		{
+			nrf_gpio_pin_set(GREEN_LED_PIN);
+			break;
+		} 
 
 		//TODO continue to select different modes, like DFU, 
 		//for on_button_held length values
 	}
 
-	if (on_button_held > 40)
+	if (on_button_held > ON_HOLD_TIME)
     {
         printk("Initializing...\n");
         k_busy_wait(2000000);
@@ -476,6 +527,7 @@ void main(void)
 	else
 	{
 		printk("Powering Off...\n");
+		nrf_gpio_pin_set(GREEN_LED_PIN);
 
 		pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 	    k_sleep(K_SECONDS(SLEEP_S));
@@ -489,7 +541,6 @@ void main(void)
 	strcpy(my_work.name, "Bluetooth Notify thread");
 	k_work_init(&my_work.work, offload_function);
 	
-
     //Initialize Button/Motor Peripherals
     err = configure_haptic_button();
     if (err != NRFX_SUCCESS)
