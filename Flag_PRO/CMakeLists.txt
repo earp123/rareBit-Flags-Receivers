@@ -8,7 +8,6 @@ project(ble_peripheral_simple)
 
 # Source files
 target_sources(app PRIVATE src/main.c)
-target_sources(app PRIVATE src/pulse_rgb.c)
 target_sources(app PRIVATE src/battery.c)
 
 target_include_directories(app PRIVATE src/inc)

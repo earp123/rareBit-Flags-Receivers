@@ -493,3 +493,6 @@
 347	1157	7154683754710381	modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-build	d1d3cd1da413ab48
 347	1157	7154683754710381	mcuboot/zephyr/zephyr.hex	d1d3cd1da413ab48
 347	1157	7154683754710381	mcuboot/zephyr/zephyr.elf	d1d3cd1da413ab48
+138	482	7154683754710381	modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-build	d1d3cd1da413ab48
+138	482	7154683754710381	mcuboot/zephyr/zephyr.hex	d1d3cd1da413ab48
+138	482	7154683754710381	mcuboot/zephyr/zephyr.elf	d1d3cd1da413ab48

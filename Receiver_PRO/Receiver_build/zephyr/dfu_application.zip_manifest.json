@@ -1,6 +1,6 @@
 {
     "format-version": 0,
-    "time": 1694890059,
+    "time": 1695087880,
     "files": [
         {
             "load_address": 49664,
@@ -8,9 +8,9 @@
             "type": "application",
             "board": "rarebit_receiver",
             "soc": "nRF52840_QIAA",
-            "size": 320823,
+            "size": 320735,
             "file": "app_update.bin",
-            "modtime": 1694890058
+            "modtime": 1695087880
         }
     ],
     "name": "Receiver_PRO",

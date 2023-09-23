@@ -37,9 +37,3 @@ if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "D:/ncs/toolchains/v2.3.0/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump.exe")
 endif()
 
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for each subdirectory.
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/boards/arm/ubx_bmd345eval_nrf52840/cmake_install.cmake")
-
-endif()
-

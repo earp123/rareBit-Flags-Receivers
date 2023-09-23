@@ -58,7 +58,7 @@
 #include "zephyr/mgmt/mcumgr/grp/fs_mgmt/fs_mgmt.h"
 #endif
 
-#define COMPILE_ONOFF 1
+#define COMPILE_ONOFF 0
 
 #define ON_HOLD_TIME  4000
 #define OFF_HOLD_TIME 3000
@@ -105,6 +105,8 @@
 
 #define WORQ_THREAD_STACK_SIZE  4096
 #define WORKQ_PRIORITY   5
+
+#define SLEEP_S 2U
 
 // Define stack area used by workqueue thread
 static K_THREAD_STACK_DEFINE(my_stack_area, WORQ_THREAD_STACK_SIZE);
@@ -184,8 +186,9 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
 		{
 			alert_type = 2;
 		}
-		
-		k_work_submit_to_queue(&offload_work_q, &page_alert_work.work);
+
+		if (page_alert != 64) //whenever the flag is disconnected it sends a 64 for some reason
+			k_work_submit_to_queue(&offload_work_q, &page_alert_work.work);
 	}
 
 	return BT_GATT_ITER_CONTINUE;
@@ -451,6 +454,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 
 			conn_count++;
 			printk("Devices connected: %d\n", conn_count);
+			
 
 		}
 	}
@@ -494,19 +498,22 @@ void power_off_function(struct k_work *work_item)
 
 		if (button_held_time > OFF_HOLD_TIME)
 		{
-			
-			pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
-
 			printk("Powering Off...\n");
 			nrf_gpio_pin_clear(GREEN_LED_PIN);
+			nrfx_gpiote_trigger_disable(RECEIVER_BUTTON_PIN);
+			k_busy_wait(1000000);
+
+			pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 			
-			k_busy_wait(2000000);//give the user time to release the button
+			k_sleep(K_SECONDS(SLEEP_S));//give the user time to release the button
+
+			nrf_gpio_pin_set(RED_LED_PIN);
+
+			while(1){}
 			
 		}
 	}
 	
-		
-	printk("Work thread executed. \n");
 }
 
 void page_alert_function(struct k_work *work_item){
@@ -562,9 +569,9 @@ static void button_handler(nrfx_gpiote_pin_t pin, nrfx_gpiote_trigger_t trigger,
 	if (debounce_check)
 	{
 		printk("GPIO input event callback\n");
-
+#if COMPILE_ONOFF
 		k_work_submit_to_queue(&offload_work_q, &power_off_work.work);
-			
+#endif
 	}
 	debounce_check = !debounce_check;
 }
@@ -628,7 +635,7 @@ void main(void)
 
 	printk("~~~~~~~~~rareBit Receiver Demo~~~~~~~~~~~\n");
 
-	nrf_gpio_cfg_input(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_NOPULL);
+	nrf_gpio_cfg_input(RECEIVER_BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
 	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_NOPULL);
 	nrf_gpio_cfg_input(CHG_STAT_PIN, NRF_GPIO_PIN_NOPULL);
 
@@ -689,7 +696,6 @@ void main(void)
 
 		pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
 	    k_msleep(2000);
-
 	}
 #endif
 	//Continues...
@@ -738,9 +744,37 @@ void main(void)
 
 	printk("Scanning successfully started\n");
 
+	int blink_cnt = 0;
+
 	while(1)
 	{
 		k_msleep(100);
-		//TODO handle case of USB_PIN detected while on
+		blink_cnt++;
+		if (blink_cnt >= 100)
+		{
+			nrf_gpio_pin_set(BLUE_LED_PIN);
+			k_busy_wait(200000);
+			nrf_gpio_pin_clear(BLUE_LED_PIN);
+			blink_cnt = 0;
+			
+		}
+#if !COMPILE_ON_OFF
+		if(nrf_gpio_pin_read(USB_PIN))
+		{
+			if(nrf_gpio_pin_read(CHG_STAT_PIN))
+			{
+				nrf_gpio_pin_clear(RED_LED_PIN);
+				nrf_gpio_pin_set(GREEN_LED_PIN);
+			}
+			else
+				nrf_gpio_pin_set(RED_LED_PIN);
+		}
+		else
+		{
+			nrf_gpio_pin_clear(RED_LED_PIN);
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+		}
+			
+#endif		
 	} 
 }

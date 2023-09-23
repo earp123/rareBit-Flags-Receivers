@@ -80,9 +80,6 @@ D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/soc/ar
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/soc/arm/nordic_nrf/common/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/CMakeFiles/rebuild_cache.dir
-D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/boards/arm/ubx_bmd345eval_nrf52840/CMakeFiles/rebuild_cache.dir
-D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/boards/arm/ubx_bmd345eval_nrf52840/CMakeFiles/boards__arm__ubx_bmd345eval_nrf52840.dir
-D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/boards/boards/arm/ubx_bmd345eval_nrf52840/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/subsys/CMakeFiles/edit_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/subsys/CMakeFiles/rebuild_cache.dir
 D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/BMD-345_EVK/mcuboot/zephyr/subsys/debug/CMakeFiles/edit_cache.dir

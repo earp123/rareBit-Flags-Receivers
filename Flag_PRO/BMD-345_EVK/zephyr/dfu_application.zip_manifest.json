@@ -1,6 +1,6 @@
 {
     "format-version": 0,
-    "time": 1694047019,
+    "time": 1695083614,
     "files": [
         {
             "load_address": 49664,
@@ -8,9 +8,9 @@
             "type": "application",
             "board": "ubx_bmd345eval_nrf52840",
             "soc": "nRF52840_QIAA",
-            "size": 272983,
+            "size": 272402,
             "file": "app_update.bin",
-            "modtime": 1694047019
+            "modtime": 1695083613
         }
     ],
     "name": "Flag_PRO",

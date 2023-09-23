@@ -1,0 +1,25 @@
+{
+    "format-version": 0,
+    "time": 1695135609,
+    "files": [
+        {
+            "load_address": 49664,
+            "version_MCUBOOT": "0.0.0+0",
+            "type": "application",
+            "board": "rareBit_Flag",
+            "soc": "nRF52840_QIAA",
+            "size": 267572,
+            "file": "app_update.bin",
+            "modtime": 1695135608
+        }
+    ],
+    "name": "Flag_PRO",
+    "firmware": {
+        "zephyr": {
+            "revision": "fcaa60a99fa9d5256078ed28557856ec3709cfa9-dirty"
+        },
+        "nrf": {
+            "revision": "8f26142b2f815d5a12e1f77ee8a6ea554a89b079"
+        }
+    }
+}

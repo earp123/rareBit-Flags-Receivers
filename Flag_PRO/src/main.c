@@ -29,7 +29,7 @@
 
 #define COMPILE_BATTERY 0
 #define COMPILE_RGBLED 0
-#define COMPILE_ONOFF 1
+#define COMPILE_ONOFF 0
 #define COMPILE_DFU  0
 
 #if COMPILE_BATTERY
@@ -73,16 +73,45 @@
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME)-1)
 
 
-#define PAGE_BUTTON_PIN	DT_GPIO_PIN(DT_ALIAS(sw0), gpios)
-#define USB_PIN	        DT_GPIO_PIN(DT_ALIAS(sw1), gpios)
-#define CHG_STAT_PIN	DT_GPIO_PIN(DT_ALIAS(sw2), gpios)
+//Macros required to get absolute pin numbers for use with NRF GPIO API (stupid!)
+#define GET_GPIO_ID_OF_LED(LED_ID)	DT_PHANDLE_BY_IDX(LED_ID, gpios, 0)
+#define GET_PORT_OF_GPIO(GPIO_ID)	DT_PROP(GPIO_ID, port)
 
-#define HAPTIC_MOTOR_PIN DT_GPIO_PIN(DT_ALIAS(led0), gpios)
+#define GET_PORT(LED_ID)	GET_PORT_OF_GPIO(GET_GPIO_ID_OF_LED(LED_ID))
+#define GET_PIN(LED_ID)		DT_GPIO_PIN(LED_ID, gpios)
 
-//RGB LED
-#define RED_LED_PIN DT_GPIO_PIN(DT_ALIAS(led1), gpios)
-#define GREEN_LED_PIN DT_GPIO_PIN(DT_ALIAS(led2), gpios)
-#define BLUE_LED_PIN DT_GPIO_PIN(DT_ALIAS(led3), gpios)
+#define LED0_ID 	DT_ALIAS(led0)
+#define LED1_ID 	DT_ALIAS(led1)
+#define LED2_ID 	DT_ALIAS(led2)
+#define LED3_ID 	DT_ALIAS(led3)
+#define PWR_ON_ID	DT_ALIAS(pwr_on)
+
+#define SW0_ID 		DT_ALIAS(sw0)
+#define SW1_ID 		DT_ALIAS(sw1)
+#define SW2_ID 		DT_ALIAS(sw2)
+
+#define GPIO1_PORT	GET_PORT(LED1_ID)
+
+#define LED0_PIN	GET_PIN(LED0_ID)
+#define LED1_PIN	GET_PIN(LED1_ID)
+#define LED2_PIN	GET_PIN(LED2_ID)
+#define LED3_PIN	GET_PIN(LED3_ID)
+#define PWR_ON_PIN  GET_PIN(PWR_ON_ID)
+
+#define SW0_PIN		GET_PIN(SW0_ID)
+#define SW1_PIN		GET_PIN(SW1_ID)
+#define SW2_PIN		GET_PIN(SW2_ID)
+
+#define PAGE_BUTTON_PIN 	NRF_GPIO_PIN_MAP(GPIO1_PORT, SW0_PIN)
+#define USB_PIN	            NRF_GPIO_PIN_MAP(GPIO1_PORT, SW1_PIN)
+#define CHG_STAT_PIN	    NRF_GPIO_PIN_MAP(GPIO1_PORT, SW2_PIN)
+
+#define HAPTIC_MOTOR_PIN    NRF_GPIO_PIN_MAP(GPIO1_PORT, LED0_PIN)
+
+#define RED_LED_PIN       NRF_GPIO_PIN_MAP(GPIO1_PORT, LED1_PIN)
+#define GREEN_LED_PIN     NRF_GPIO_PIN_MAP(GPIO1_PORT, LED2_PIN)
+#define BLUE_LED_PIN      NRF_GPIO_PIN_MAP(GPIO1_PORT, LED3_PIN)
+#define PWR_ON_ABS_PIN 	  NRF_GPIO_PIN_MAP(GPIO1_PORT, PWR_ON_PIN)
 
 #define LOW_BATT_INDIACTE_MV 3000
 #define NORMAL_BATT_INDICATE_MV 3500
@@ -187,13 +216,10 @@ void start_advertising_coded(void)
     else 
 	{
 		printk("Bluetooth advertising started!\n");
-		nrf_gpio_pin_clear(BLUE_LED_PIN);
+		nrf_gpio_pin_set(BLUE_LED_PIN);
 	}
 
 }
-
-
-
 
 // Instantiate the service and its characteristics
 BT_GATT_SERVICE_DEFINE(
@@ -249,7 +275,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 	}
 
 	nrfx_gpiote_out_task_enable(HAPTIC_MOTOR_PIN);
-	nrf_gpio_pin_set(BLUE_LED_PIN);
+	nrf_gpio_pin_clear(BLUE_LED_PIN);
 
 }
 
@@ -324,8 +350,9 @@ void offload_function(struct k_work *work_tem)
 	uint8_t * page_p = page_d;
 
 	if (conn_handle != NULL)
-	bt_pageAlert(conn_handle, page_p, 1);
+		bt_pageAlert(conn_handle, page_p, 1);
 
+#if COMPILE_ONFOFF
 	int button_held_time = 0;
 	while (!nrf_gpio_pin_read(PAGE_BUTTON_PIN))
 	{
@@ -353,8 +380,9 @@ void offload_function(struct k_work *work_tem)
 	}
 	
 	nrf_gpio_pin_set(GREEN_LED_PIN);
-
-	nrfx_gpiote_out_task_force(HAPTIC_MOTOR_PIN, 1);
+	nrfx_gpiote_out_task_force(HAPTIC_MOTOR_PIN, 0);
+	
+#endif
 		
 	printk("Work thread executed. \n");
 }
@@ -407,7 +435,7 @@ nrfx_err_t configure_haptic_button(void)
 		.pull = NRF_GPIO_PIN_PULLUP,
 	};
 	const nrfx_gpiote_trigger_config_t trigger_config = {
-		.trigger = NRFX_GPIOTE_TRIGGER_HITOLO,
+		.trigger = NRFX_GPIOTE_TRIGGER_TOGGLE,
 		.p_in_channel = &in_channel,
 	};
 	static const nrfx_gpiote_handler_config_t handler_config = {
@@ -431,7 +459,7 @@ nrfx_err_t configure_haptic_button(void)
 	const nrfx_gpiote_task_config_t task_config = {
 		.task_ch = out_channel,
 		.polarity = NRF_GPIOTE_POLARITY_TOGGLE,
-		.init_val = 1,
+		.init_val = 0,
 	};
 	err = nrfx_gpiote_output_configure(HAPTIC_MOTOR_PIN,
 					   &output_config,
@@ -472,19 +500,21 @@ void main(void)
 
 	printk("~~~~~~~~~~rareBit Flag Demo~~~~~~~~~~~~~\n");
 
+	nrf_gpio_cfg_output(PWR_ON_ABS_PIN);
+	nrf_gpio_pin_set(PWR_ON_ABS_PIN);
+
 	nrf_gpio_cfg_input(PAGE_BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
-	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_PULLUP);
-	nrf_gpio_cfg_input(CHG_STAT_PIN, NRF_GPIO_PIN_PULLUP);
+	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_NOPULL);
+	nrf_gpio_cfg_input(CHG_STAT_PIN, NRF_GPIO_PIN_NOPULL);
 
 	/* Configure to generate PORT event (wakeup) on button 1 press. */
 	nrf_gpio_cfg_sense_set(PAGE_BUTTON_PIN, NRF_GPIO_PIN_SENSE_LOW);
-	nrf_gpio_cfg_sense_set(USB_PIN, NRF_GPIO_PIN_SENSE_LOW);
+	nrf_gpio_cfg_sense_set(USB_PIN, NRF_GPIO_PIN_SENSE_HIGH);
 
 	nrf_gpio_cfg_output(RED_LED_PIN);
 	nrf_gpio_cfg_output(GREEN_LED_PIN);
 	nrf_gpio_cfg_output(BLUE_LED_PIN);
 
-	nrf_gpio_pin_set(BLUE_LED_PIN);
 
 #if COMPILE_ONOFF
 	
@@ -576,8 +606,10 @@ void main(void)
 
     printk("....\n Bluetooth stack init success\n");
 
+#if COMPILE_DFU
 	smp_bt_register();
 	//"E: Unable to register handle 0x0010" ??	       
+#endif
 
     // Register for connection callbacks
     bt_conn_cb_register(&conn_callbacks);
@@ -588,11 +620,20 @@ void main(void)
     //Start advertising
     start_advertising_coded();
 
-	
+	int blink_cnt = 0;
     while(1)
     {
 
-		k_msleep(400);
+		k_msleep(100);
+		blink_cnt++;
+		if (blink_cnt >= 100)
+		{
+			nrf_gpio_pin_set(BLUE_LED_PIN);
+			k_busy_wait(200000);
+			nrf_gpio_pin_clear(BLUE_LED_PIN);
+			blink_cnt = 0;
+			
+		}
 
 #if COMPILE_BATTERY
 		int batt_mV = battery_sample();
@@ -615,6 +656,24 @@ void main(void)
                 //Do nothing
             }
         }
+#endif
+#if !COMPILE_ON_OFF
+		if(nrf_gpio_pin_read(USB_PIN))
+		{
+			if(nrf_gpio_pin_read(CHG_STAT_PIN))
+			{
+				nrf_gpio_pin_clear(RED_LED_PIN);
+				nrf_gpio_pin_set(GREEN_LED_PIN);
+			}
+			else
+				nrf_gpio_pin_set(RED_LED_PIN);
+		}
+		else
+		{
+			nrf_gpio_pin_clear(RED_LED_PIN);
+			nrf_gpio_pin_clear(GREEN_LED_PIN);
+		}
+			
 #endif
     }
 }

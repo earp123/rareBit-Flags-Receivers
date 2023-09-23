@@ -783,7 +783,7 @@ set_target_properties(devicetree_target PROPERTIES "DT_REG|/pin-controller/uart0
 set_target_properties(devicetree_target PROPERTIES "DT_REG|/pin-controller/uart0_default|ADDR" "")
 set_target_properties(devicetree_target PROPERTIES "DT_REG|/pin-controller/uart0_default|SIZE" "")
 set_target_properties(devicetree_target PROPERTIES "DT_NODE|/pin-controller/uart0_default/group1" TRUE)
-set_target_properties(devicetree_target PROPERTIES "DT_PROP|/pin-controller/uart0_default/group1|psels" "6;65544;131077;196615;")
+set_target_properties(devicetree_target PROPERTIES "DT_PROP|/pin-controller/uart0_default/group1|psels" "13;65550;131077;196615;")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/pin-controller/uart0_default/group1|nordic,drive-mode" "0")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/pin-controller/uart0_default/group1|nordic,invert" "False")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/pin-controller/uart0_default/group1|bias-disable" "False")

@@ -502,7 +502,7 @@
 		uart0_default: uart0_default {
 			phandle = < 0x3 >;
 			group1 {
-				psels = < 0x6 >, < 0x10008 >, < 0x20005 >, < 0x30007 >;
+				psels = < 0xd >, < 0x1000e >, < 0x20005 >, < 0x30007 >;
 			};
 		};
 		uart0_sleep: uart0_sleep {

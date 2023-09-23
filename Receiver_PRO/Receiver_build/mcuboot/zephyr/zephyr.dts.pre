@@ -672,8 +672,8 @@
  &pinctrl {
  uart0_default: uart0_default {
   group1 {
-   psels = <((((((0) * 32U) + (6)) & 0x7FU) << 0U) | ((0U & 0xFFFFU) << 16U))>,
-    <((((((0) * 32U) + (8)) & 0x7FU) << 0U) | ((1U & 0xFFFFU) << 16U))>,
+   psels = <((((((0) * 32U) + (13)) & 0x7FU) << 0U) | ((0U & 0xFFFFU) << 16U))>,
+    <((((((0) * 32U) + (14)) & 0x7FU) << 0U) | ((1U & 0xFFFFU) << 16U))>,
     <((((((0) * 32U) + (5)) & 0x7FU) << 0U) | ((2U & 0xFFFFU) << 16U))>,
     <((((((0) * 32U) + (7)) & 0x7FU) << 0U) | ((3U & 0xFFFFU) << 16U))>;
   };

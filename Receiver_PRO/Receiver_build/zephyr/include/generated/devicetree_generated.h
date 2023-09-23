@@ -4251,10 +4251,10 @@
 #define DT_N_S_pin_controller_S_uart0_default_S_group1_PINCTRL_NUM 0
 
 /* Generic property macros: */
-#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels {6 /* 0x6 */, 65544 /* 0x10008 */, 131077 /* 0x20005 */, 196615 /* 0x30007 */}
-#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_0 6
+#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels {13 /* 0xd */, 65550 /* 0x1000e */, 131077 /* 0x20005 */, 196615 /* 0x30007 */}
+#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_0 13
 #define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_0_EXISTS 1
-#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_1 65544
+#define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_1 65550
 #define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_1_EXISTS 1
 #define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_2 131077
 #define DT_N_S_pin_controller_S_uart0_default_S_group1_P_psels_IDX_2_EXISTS 1
