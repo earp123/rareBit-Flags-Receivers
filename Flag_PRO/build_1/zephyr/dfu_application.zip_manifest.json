@@ -1,16 +1,16 @@
 {
     "format-version": 0,
-    "time": 1694047050,
+    "time": 1713537717,
     "files": [
         {
             "load_address": 49664,
             "version_MCUBOOT": "0.0.0+0",
             "type": "application",
-            "board": "nrf52840dk_nrf52840",
+            "board": "ubx_bmd345eval_nrf52840",
             "soc": "nRF52840_QIAA",
-            "size": 271360,
+            "size": 212592,
             "file": "app_update.bin",
-            "modtime": 1694047050
+            "modtime": 1713537717
         }
     ],
     "name": "Flag_PRO",

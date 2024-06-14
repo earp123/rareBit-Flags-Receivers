@@ -84,7 +84,7 @@
 #define LED1_ID 	DT_ALIAS(led1)
 #define LED2_ID 	DT_ALIAS(led2)
 #define LED3_ID 	DT_ALIAS(led3)
-#define PWR_ON_ID	DT_ALIAS(pwr_on)
+//#define PWR_ON_ID	DT_ALIAS(pwr_on)
 
 #define SW0_ID 		DT_ALIAS(sw0)
 #define SW1_ID 		DT_ALIAS(sw1)
@@ -96,7 +96,7 @@
 #define LED1_PIN	GET_PIN(LED1_ID)
 #define LED2_PIN	GET_PIN(LED2_ID)
 #define LED3_PIN	GET_PIN(LED3_ID)
-#define PWR_ON_PIN  GET_PIN(PWR_ON_ID)
+//#define PWR_ON_PIN  GET_PIN(PWR_ON_ID)
 
 #define SW0_PIN		GET_PIN(SW0_ID)
 #define SW1_PIN		GET_PIN(SW1_ID)
@@ -111,7 +111,7 @@
 #define RED_LED_PIN       NRF_GPIO_PIN_MAP(GPIO1_PORT, LED1_PIN)
 #define GREEN_LED_PIN     NRF_GPIO_PIN_MAP(GPIO1_PORT, LED2_PIN)
 #define BLUE_LED_PIN      NRF_GPIO_PIN_MAP(GPIO1_PORT, LED3_PIN)
-#define PWR_ON_ABS_PIN 	  NRF_GPIO_PIN_MAP(GPIO1_PORT, PWR_ON_PIN)
+//#define PWR_ON_ABS_PIN 	  NRF_GPIO_PIN_MAP(GPIO1_PORT, PWR_ON_PIN)
 
 #define LOW_BATT_INDIACTE_MV 3000
 #define NORMAL_BATT_INDICATE_MV 3500
@@ -500,8 +500,8 @@ void main(void)
 
 	printk("~~~~~~~~~~rareBit Flag Demo~~~~~~~~~~~~~\n");
 
-	nrf_gpio_cfg_output(PWR_ON_ABS_PIN);
-	nrf_gpio_pin_set(PWR_ON_ABS_PIN);
+	//nrf_gpio_cfg_output(PWR_ON_ABS_PIN);
+	//nrf_gpio_pin_set(PWR_ON_ABS_PIN);
 
 	nrf_gpio_cfg_input(PAGE_BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
 	nrf_gpio_cfg_input(USB_PIN, NRF_GPIO_PIN_NOPULL);

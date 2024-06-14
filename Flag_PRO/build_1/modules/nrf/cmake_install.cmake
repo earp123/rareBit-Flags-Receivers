@@ -1,4 +1,4 @@
-# Install script for directory: D:/ncs/v2.3.0/nrf
+# Install script for directory: C:/ncs/v2.3.0/nrf
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,18 +34,18 @@ endif()
 
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "D:/ncs/toolchains/v2.3.0/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump.exe")
+  set(CMAKE_OBJDUMP "C:/ncs/toolchains/v2.3.0/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/ext/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/lib/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/samples/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/subsys/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/modules/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/drivers/cmake_install.cmake")
-  include("D:/nordicsemi/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/tests/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/ext/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/lib/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/samples/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/subsys/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/modules/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/drivers/cmake_install.cmake")
+  include("C:/Users/ralls/GitHub/rareBit-Flags-Receivers/Flag_PRO/build_1/modules/nrf/tests/cmake_install.cmake")
 
 endif()
 
