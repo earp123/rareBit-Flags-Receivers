@@ -1,0 +1,5 @@
+board:
+  name: pro_recv
+  vendor: arm
+  socs:
+    - name: nrf52840

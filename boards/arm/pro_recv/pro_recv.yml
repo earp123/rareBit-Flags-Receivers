@@ -1,0 +1,11 @@
+identifier: pro_recv/nrf52840
+name: PRO Receiver
+vendor: rareBit
+type: mcu
+arch: arm
+ram: 256
+flash: 1024
+toolchain:
+  - zephyr
+supported:
+  - gpio
