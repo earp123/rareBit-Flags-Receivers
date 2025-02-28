@@ -1,4 +1,4 @@
 # rareBit-Flags-Receivers
- Firmware for the rareBit Flags and Receviers with Zephyr RTOS
+Firmware for the rareBit Flags and Receviers with Zephyr RTOS
 
-[rarebitofficial.com](url)
+https://www.rarebitofficial.com/
