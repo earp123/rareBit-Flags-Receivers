@@ -1,6 +1,0 @@
-if BOARD_PRO_RECV
-
-config BT_CTLR
-	default BT
-
-endif # BOARD_PRO_RECV

@@ -1,0 +1,6 @@
+if BOARD_PRO_RECEVIER
+
+config BT_CTLR
+	default BT
+
+endif # BOARD_PRO_RECEVIER

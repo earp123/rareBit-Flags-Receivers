@@ -139,7 +139,7 @@ int alert_type = 1; //just using 1 and 2 right now
 static struct bt_conn *default_conn;
 static struct bt_pag_client pag_c;
 
-static uint8_t volatile conn_count;
+static uint8_t conn_count;
 
 char NOT_CONNECTED[] = "FF:FF:FF:FF:FF:FF";
 
