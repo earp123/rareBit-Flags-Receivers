@@ -1,0 +1,12 @@
+{
+    "devicetree.modules": [
+
+        "${zephyrBase}/../*",
+        "${zephyrBase}/../modules/*",
+        "C:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/**",
+        "."
+    ],
+    "nrf-connect.boardRoots": [
+        "C:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards"
+    ]
+}

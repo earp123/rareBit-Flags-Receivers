@@ -1,0 +1,42 @@
+cmake:
+  application:
+    configuration-dir: C:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO
+    source-dir: C:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO
+  board:
+    name: pro_flag
+    qualifiers: 
+    revision: 
+  devicetree:
+    bindings-dirs:
+     - C:/ncs/v2.9.1/nrf/dts/bindings
+     - C:/ncs/v2.9.1/zephyr/dts/bindings
+    files:
+     - C:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/pro_flag/pro_flag.dts
+    include-dirs:
+     - C:/ncs/v2.9.1/nrf/include
+     - C:/ncs/v2.9.1/nrf/dts
+     - C:/ncs/v2.9.1/zephyr/include
+     - C:/ncs/v2.9.1/zephyr/include/zephyr
+     - C:/ncs/v2.9.1/zephyr/dts/common
+     - C:/ncs/v2.9.1/zephyr/dts/arm
+     - C:/ncs/v2.9.1/zephyr/dts
+  kconfig:
+    files:
+     - C:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/pro_flag/pro_flag_defconfig
+     - C:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO/prj.conf
+    user-files:
+     - C:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO/prj.conf
+  toolchain:
+    name: zephyr
+    path: C:/ncs/toolchains/b620d30767/opt/zephyr-sdk
+  vendor-specific:
+    nordic:
+      svdfile: C:/ncs/v2.9.1/modules/hal/nordic/nrfx/mdk/nrf52840.svd
+  zephyr:
+    version: 3.7.99
+    zephyr-base: C:/ncs/v2.9.1/zephyr
+version: 0.1.0
+west:
+  command: C:\ncs\toolchains\b620d30767\opt\bin\Scripts\west build --build-dir c:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO/build1 c:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO --pristine --board pro_flag --no-sysbuild -- -DNCS_TOOLCHAIN_VERSION=NONE -DBOARD_ROOT=c:/users/ralls/github/rarebit-flags-receivers
+  topdir: c:\ncs\v2.9.1
+  version: 1.2.0

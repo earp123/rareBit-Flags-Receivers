@@ -1,0 +1,12 @@
+# Generated file used for preloading a child image
+set(CMAKE_BUILD_TYPE "MinSizeRel" CACHE INTERNAL "NCS child image controlled")
+set(CMAKE_VERBOSE_MAKEFILE "FALSE" CACHE INTERNAL "NCS child image controlled")
+set(BOARD_DIR "C:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/pro_flag" CACHE INTERNAL "NCS child image controlled")
+set(ZEPHYR_TOOLCHAIN_VARIANT "zephyr" CACHE INTERNAL "NCS child image controlled")
+set(CROSS_COMPILE "C:/ncs/toolchains/b620d30767/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-" CACHE INTERNAL "NCS child image controlled")
+set(NCS_TOOLCHAIN_VERSION "NONE" CACHE INTERNAL "NCS child image controlled")
+set(WEST_PYTHON "C:/ncs/toolchains/b620d30767/opt/bin/python.exe" CACHE INTERNAL "NCS child image controlled")
+set(BOARD_ROOT "c:/users/ralls/github/rarebit-flags-receivers" CACHE INTERNAL "NCS child image controlled")
+set(FILE_SUFFIX "" CACHE INTERNAL "NCS child image controlled")
+set(BOARD "pro_flag" CACHE INTERNAL "NCS child image controlled")
+set(EXTRA_CONF_FILE ";C:/ncs/v2.9.1/nrf/subsys/partition_manager/partition_manager_enabled.conf" CACHE INTERNAL "NCS child image controlled")

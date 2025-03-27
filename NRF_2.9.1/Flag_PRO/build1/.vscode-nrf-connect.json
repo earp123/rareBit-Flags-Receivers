@@ -1,0 +1,21 @@
+{
+  "toolchainPath": "c:\\ncs\\toolchains\\b620d30767",
+  "sdkPath": "c:\\ncs\\v2.9.1",
+  "board": "pro_flag",
+  "boardDirs": [
+    "c:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/pro_flag"
+  ],
+  "boardRevision": "",
+  "boardDir": "c:/Users/ralls/GitHub/rareBit-Flags-Receivers/boards/arm/pro_flag",
+  "shouldBuild": true,
+  "optimizations": "none",
+  "cmakeArgs": [],
+  "confFiles": [],
+  "buildDirectory": "build1",
+  "kconfigFragments": [],
+  "snippets": [],
+  "dtcOverlays": [],
+  "extraDtcOverlays": [],
+  "boardRoot": "c:\\Users\\ralls\\GitHub\\rareBit-Flags-Receivers",
+  "sysbuild": false
+}
