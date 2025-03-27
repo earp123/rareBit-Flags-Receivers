@@ -18,6 +18,7 @@
 #include <zephyr/pm/policy.h>
 #include <zephyr/sys/poweroff.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/drivers/watchdog.h>
 
 // Devicetree + GPIO includes
 #include <nrfx_gpiote.h>
@@ -37,9 +38,9 @@
 
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
-#define COMPILE_ADC_PRINT 0
-#define COMPILE_ON_OFF 1
-#define COMPILE_AD_TIMEOUT 1
+#define COMPILE_ADC_PRINT   1
+#define COMPILE_ON_OFF      1
+#define COMPILE_AD_TIMEOUT  1
 
 
 #if COMPILE_ADC_PRINT
@@ -56,6 +57,21 @@ static struct adc_sequence sequence = {
     //.calibrate = true,
 };
 #endif
+
+#define WDT_MAX_WINDOW  10000U
+#define WDT_MIN_WINDOW  0U
+
+int wdt_channel_id;
+const struct device *const wdt = DEVICE_DT_GET(DT_ALIAS(watchdog0));
+
+struct wdt_timeout_cfg wdt_config = {
+    /* Reset SoC when watchdog timer expires. */
+    .flags = WDT_FLAG_RESET_SOC,
+
+    /* Expire watchdog after max window */
+    .window.min = WDT_MIN_WINDOW,
+    .window.max = WDT_MAX_WINDOW,
+};
 
 LOG_MODULE_REGISTER(PRO_FLAG, LOG_LEVEL_DBG);
 
@@ -115,27 +131,27 @@ const uint8_t page_d[] = {0x01};
 const uint8_t * page_p = page_d;
 
 //Advertising Timeout period ranges from EVENTS * MIN_INTERVAL to EVENTS * MAX_INTERVAL
-#define ADVERTISNG_TIMEOUT_EVENTS 200
+#define ADVERTISNG_TIMEOUT_EVENTS   200
 
 //static bool app_button_state = false;
 
 //Total fade up time is DELAY * PWM_STEPS
-#define HAPTIC_PWM_PERIOD_NS    500000
-#define HAPTIC_FADE_DELAY_MS    1
-#define HAPTIC_PWM_STEPS        1000
+#define HAPTIC_PWM_PERIOD_NS        500000
+#define HAPTIC_FADE_DELAY_MS        1
+#define HAPTIC_PWM_STEPS            1000
 
-#define POWERON_COUNT           100  //in units of 50ms
-#define POWERDOWN_COUNT         100  //in units of 50ms
+#define POWERON_COUNT               100  //in units of 50ms
+#define POWERDOWN_COUNT             100  //in units of 50ms
 
-#define DFU_MODE_COUNT          200  // should at least twice as long as POWERON_COUNT, in units of 50ms
+#define DFU_MODE_COUNT              200  // should at least twice as long as POWERON_COUNT, in units of 50ms
 
-#define POWERON_PWM_PERIOD_NS 500000
-#define POWERON_FADE_UP_DELAY_MS 1
-#define POWERON_PWM_STEPS 3000
+#define POWERON_PWM_PERIOD_NS       500000
+#define POWERON_FADE_UP_DELAY_MS    1
+#define POWERON_PWM_STEPS           3000
 
-#define LOW_BATTERY_STATUS_MV   720
-#define LOW_BATTERY_STATUS_COUNT 100
-#define BATTERY_CHECK_INTERVAL_MS  5000
+#define LOW_BATTERY_STATUS_MV       800
+#define LOW_BATTERY_STATUS_COUNT    100
+#define BATTERY_CHECK_INTERVAL_MS   5000
 
 #define DEVICE_NAME "rareBit PRO Flag"
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
@@ -533,11 +549,15 @@ static void init_pins(void)
 int main(void)
 {
     init_pins();
+
+    int err;
     
     k_work_queue_start(&offload_work_q, my_stack_area, K_THREAD_STACK_SIZEOF(my_stack_area), 
                                                                         WORKQ_PRIORITY, NULL);
 
     int button_held_count = 0;
+    ARG_UNUSED(button_held_count);
+
     strcpy(usb_work.name, "USB Detect Thread");
     k_work_init(&usb_work.work, usb_detect_thread);
 
@@ -571,21 +591,6 @@ int main(void)
         }
 
         gpio_pin_set_dt(&g_led, 0);
-        k_msleep(300);
-
-        while(gpio_pin_get_dt(&button))
-        {
-            k_msleep(50);
-            button_held_count++;
-
-            if(button_held_count > DFU_MODE_COUNT)
-            {
-                gpio_pin_set_dt(&r_led, 1);
-                gpio_pin_set_dt(&b_led, 1);
-                break;
-            } 
-        }
-
 
     }
     if(button_held_count < POWERON_COUNT)
@@ -595,17 +600,24 @@ int main(void)
         sys_poweroff();
         k_msleep(3000);
     }
-    else if(button_held_count >= DFU_MODE_COUNT)
-    {
-        printk("~~~~~~~~~~~~~~~~DFU CONDITION~~~~~~~~~~~~~~~~\n");
-    }
 #endif
 
     // //Continues...
     printk("~~~~~~FLAG POWER ON~~~~~~~~~\n");
-    init_callbacks();
 
-    int err;
+    wdt_channel_id = wdt_install_timeout(wdt, &wdt_config);
+	if (wdt_channel_id < 0) {
+		printk("Watchdog install error\n");
+		return 0;
+	}
+
+	err = wdt_setup(wdt, 0);
+	if (err < 0) {
+		printk("Watchdog setup error\n");
+		return 0;
+	}
+
+    init_callbacks();
 
     err = bt_enable(NULL);
     if (err)
@@ -624,8 +636,8 @@ int main(void)
     
     strcpy(bt_work.name, "Bluetooth Notify thread");
     k_work_init(&bt_work.work, bt_notify_thread);
-#if COMPILE_ADC_PRINT
 
+#if COMPILE_ADC_PRINT
     init_adc();
     int low_batt_count = 0;
     while (1) {
@@ -668,11 +680,14 @@ int main(void)
                 
             }
 		}
-
-		k_msleep(BATTERY_CHECK_INTERVAL_MS);
-	}
-
+#else
+    while(1)
+    {
 #endif
+        wdt_feed(wdt, wdt_channel_id);
+		k_msleep(BATTERY_CHECK_INTERVAL_MS);
+        //TODO Advertising Blink Rate
+	}
 
     return 0;
 }

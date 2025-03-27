@@ -87,7 +87,7 @@ void bt_pag_cb_init(struct bt_pag_client *pag,
 		const struct bt_pag_client_cb_init *init_param);
 
 /**
- * @brief Assign handles to the BAS Client instance.
+ * @brief Assign handles to the PAG Client instance.
  *
  * This function should be called when a connection with a peer has been
  * established, to associate the connection to this instance of the module.

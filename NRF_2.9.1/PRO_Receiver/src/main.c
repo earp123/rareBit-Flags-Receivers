@@ -18,6 +18,7 @@
 #include <zephyr/pm/policy.h>
 #include <zephyr/sys/poweroff.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/drivers/watchdog.h>
 
 // Devicetree + GPIO includes
 #include <nrfx_gpiote.h>
@@ -57,6 +58,21 @@ static struct adc_sequence sequence = {
     //.calibrate = true,
 };
 #endif
+
+#define WDT_MAX_WINDOW  10000U
+#define WDT_MIN_WINDOW  0U
+
+int wdt_channel_id;
+const struct device *const wdt = DEVICE_DT_GET(DT_ALIAS(watchdog0));
+
+struct wdt_timeout_cfg wdt_config = {
+    /* Reset SoC when watchdog timer expires. */
+    .flags = WDT_FLAG_RESET_SOC,
+
+    /* Expire watchdog after max window */
+    .window.min = WDT_MIN_WINDOW,
+    .window.max = WDT_MAX_WINDOW,
+};
 
 LOG_MODULE_REGISTER(PRO_RECV, LOG_LEVEL_DBG);
 
@@ -115,7 +131,7 @@ static const struct pwm_dt_spec pwm_ledb = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 #define POWERON_PWM_STEPS           3000
 
 
-#define LOW_BATTERY_STATUS_MV       720
+#define LOW_BATTERY_STATUS_MV       800
 #define LOW_BATTERY_STATUS_COUNT    100
 #define BATTERY_CHECK_INTERVAL_MS   5000
 
@@ -165,6 +181,7 @@ static struct bt_pag_client pag_c;
 
 static uint8_t conn_count;
 
+#if COMPILE_ON_OFF
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
     BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN)
@@ -176,9 +193,12 @@ static const struct bt_data sd[] = {
         0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
         0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d)
 };
+#endif
 
 static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char page_addr[MAC_ADDRESS_LEN]) // SWR future inputs go here
 {
+    page_addr[17] = '\0';
+
 	if(!notify_check)
 	{
 		printk("Notification, page_alert: %d\nDevice addr: %s\n", page_alert, page_addr);
@@ -745,10 +765,22 @@ int main(void)
     // //Continues...
     printk("~~~~~~RECEIVER POWER ON~~~~~~~~~\n");
 
+    int err;
+
+    wdt_channel_id = wdt_install_timeout(wdt, &wdt_config);
+	if (wdt_channel_id < 0) {
+		printk("Watchdog install error\n");
+		return 0;
+	}
+
+	err = wdt_setup(wdt, 0);
+	if (err < 0) {
+		printk("Watchdog setup error\n");
+		return 0;
+	}
+
     strcpy(pwr_down_work.name, "Power Down Thread");
     k_work_init(&pwr_down_work.work, pwr_down_thread);
-
-    int err;
 
     init_callbacks();
     
@@ -811,15 +843,14 @@ int main(void)
                 
             }
 		}
-
-        if(app_ctx[0] != NULL)
-        {
-
-        }
-        k_yield();
-		k_msleep(BATTERY_CHECK_INTERVAL_MS);
-	}
+#else
+    while(1)
+    {
 #endif
+        wdt_feed(wdt, wdt_channel_id);
+		k_msleep(BATTERY_CHECK_INTERVAL_MS);
+        //TODO Indicate Less than max connected (still scanning)
+    }
     return 0;
 }
 

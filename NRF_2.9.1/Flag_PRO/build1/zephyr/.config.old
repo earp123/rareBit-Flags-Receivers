@@ -1142,7 +1142,6 @@ CONFIG_HAS_NRFX=y
 # CONFIG_NRFX_NVMC_LOG is not set
 # CONFIG_NRFX_PPI_LOG is not set
 # CONFIG_NRFX_PWM_LOG is not set
-# CONFIG_NRFX_WDT_LOG is not set
 # end of nrfx drivers logging
 
 # CONFIG_NRFX_CLOCK is not set
@@ -1189,8 +1188,7 @@ CONFIG_NRFX_PWM1=y
 # CONFIG_NRFX_TWIM1 is not set
 # CONFIG_NRFX_UART0 is not set
 # CONFIG_NRFX_UARTE1 is not set
-CONFIG_NRFX_WDT=y
-CONFIG_NRFX_WDT0=y
+# CONFIG_NRFX_WDT0 is not set
 
 #
 # Peripheral Resource Sharing module
@@ -2152,16 +2150,7 @@ CONFIG_USBC_LOG_LEVEL=3
 # CONFIG_VIDEO is not set
 # CONFIG_VIRTUALIZATION is not set
 # CONFIG_W1 is not set
-CONFIG_WATCHDOG=y
-# CONFIG_WDT_LOG_LEVEL_OFF is not set
-# CONFIG_WDT_LOG_LEVEL_ERR is not set
-# CONFIG_WDT_LOG_LEVEL_WRN is not set
-# CONFIG_WDT_LOG_LEVEL_INF is not set
-# CONFIG_WDT_LOG_LEVEL_DBG is not set
-CONFIG_WDT_LOG_LEVEL_DEFAULT=y
-CONFIG_WDT_LOG_LEVEL=3
-CONFIG_WDT_NRFX=y
-# CONFIG_WDT_NRFX_NO_IRQ is not set
+# CONFIG_WATCHDOG is not set
 # CONFIG_TEE is not set
 # end of Device Drivers
 

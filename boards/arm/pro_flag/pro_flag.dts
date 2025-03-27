@@ -216,6 +216,10 @@
     status = "disabled";
 };
 
+&wdt0 {
+    status = "okay";
+};
+
 &timer0 {
     status = "okay";
 };
