@@ -101,12 +101,12 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(BUTTON_NODE, gpios);
 static const struct gpio_dt_spec r_led =  GPIO_DT_SPEC_GET(RED_LED_NODE, gpios);
 static const struct gpio_dt_spec g_led =  GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
 static const struct gpio_dt_spec b_led =  GPIO_DT_SPEC_GET(BLUE_LED_NODE, gpios);
-//static const struct pwm_dt_spec  pwm_buzz = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
-//static const struct gpio_dt_spec buzz_en = GPIO_DT_SPEC_GET(HAPTIC_PIN_NODE, gpios);
+static const struct pwm_dt_spec  pwm_buzz = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
+static const struct gpio_dt_spec buzz_en = GPIO_DT_SPEC_GET(HAPTIC_PIN_NODE, gpios);
 #if CONFIG_BOARD_PRO_RECEIVER
-//static const struct pwm_dt_spec pwm_ledr =    PWM_DT_SPEC_GET(PWM_RED_LED_NODE);
-//static const struct pwm_dt_spec pwm_ledg =    PWM_DT_SPEC_GET(PWM_GREEN_LED_NODE);
-//static const struct pwm_dt_spec pwm_ledb =    PWM_DT_SPEC_GET(PWM_BLUE_LED_NODE);
+static const struct pwm_dt_spec pwm_ledr =    PWM_DT_SPEC_GET(PWM_RED_LED_NODE);
+static const struct pwm_dt_spec pwm_ledg =    PWM_DT_SPEC_GET(PWM_GREEN_LED_NODE);
+static const struct pwm_dt_spec pwm_ledb =    PWM_DT_SPEC_GET(PWM_BLUE_LED_NODE);
 static const struct gpio_dt_spec usb_detect = GPIO_DT_SPEC_GET(USB_DETECT_NODE, gpios);
 static const struct gpio_dt_spec stat_pin =   GPIO_DT_SPEC_GET(USB_STAT_NODE, gpios);
 static const struct gpio_dt_spec bat_en =     GPIO_DT_SPEC_GET(FACTORY_ENABLE_NODE, gpios);
@@ -121,14 +121,28 @@ static const struct pwm_dt_spec pwm_ledb = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 #define HAPTIC_FADE_DELAY_MS        1
 #define HAPTIC_PWM_STEPS            1000
 
-#define POWERON_COUNT               100  //in units of 50ms
-#define POWERDOWN_COUNT             100  //in units of 50ms
-#define DFU_MODE_COUNT              200  // should at least twice as long as POWERON_COUNT, in units of 50ms
+#define POWERON_COUNT               4000  
+#define POWERDOWN_COUNT             100   //in units of 50ms
+#define DFU_MODE_COUNT              8000  // should at least twice as long as POWERON_COUNT
 #define WAIT_FOR_DFU                K_SECONDS(20)
 
-#define POWERON_PWM_PERIOD_NS       500000
-#define POWERON_FADE_UP_DELAY_MS    1
-#define POWERON_PWM_STEPS           3000
+                                    
+#define PWM_FADE_PERIOD             PWM_USEC(500)
+#define PWM_FADE_DELAY_MS           1
+#define PWM_FADE_STEPS              2000            //TOTAL FADE DURATION = PWM_FADE_STEPS * PWM_FADE_DELAY_MS
+#define PWM_FADE_INC                PWM_FADE_PERIOD / PWM_FADE_STEPS
+
+#define PWM_FAST_ALERT_DELAY_US     250
+#define PWM_FAST_ALERT_STEPS        400
+#define PWM_FAST_ALERT_INC          PWM_FADE_PERIOD / PWM_FAST_ALERT_STEPS
+#define FAST_ALERT_NUM              18
+
+#define PWM_SLOW_ALERT_DLEAY_MS     1
+#define PWM_SLOW_ALERT_STEPS        1000
+#define PWM_SLOW_ALERT_INC          PWM_FADE_PERIOD / PWM_SLOW_ALERT_STEPS
+#define SLOW_ALERT_NUM              6
+
+#define POWERON_FADE_STEPS          5000
 
 
 #define LOW_BATTERY_STATUS_MV       800
@@ -166,8 +180,6 @@ struct pwr_down_info
 
 //static struct bt_gatt_exchange_params mtu_exchange_params[CONFIG_BT_MAX_CONN];
 
-bool notify_check = false;
-
 //static struct bt_conn *default_conn = NULL;
 static struct bt_conn *connection_1 = NULL;
 static struct bt_conn *connection_2 = NULL;
@@ -179,6 +191,7 @@ static struct bt_conn **app_ctx[] = {&connection_1, &connection_2, &connection_3
 
 static struct bt_pag_client pag_c;
 
+static bool max_connected_alert = false;
 static uint8_t conn_count;
 
 #if COMPILE_ON_OFF
@@ -199,13 +212,54 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
 {
     page_addr[17] = '\0';
 
-	if(!notify_check)
-	{
-		printk("Notification, page_alert: %d\nDevice addr: %s\n", page_alert, page_addr);
+    // for(int n = 0; n < 6; n++)
+    // {
+    //     if(*app_ctx[n] == bt_pag_conn(pag_c))
+    //     {
+    //         printk("Connection %d Device addr: %s\n", n, page_addr);
+    //     }
+    // }
 
-		//TODO Alerting
-	}
+    //TODO disconnection gives a notification here, need to sort this
 
+    char addr[MAC_ADDRESS_LEN];
+
+    bt_addr_le_to_str(bt_conn_get_dst(*app_ctx[0]), addr, sizeof(addr));
+
+    if(!strcmp(page_addr, addr))
+    {
+        printk("Connection 1 Device addr: %s\n", page_addr);
+
+        for(int m = 0; m < 5; m++)
+        {
+            for(int k = PWM_FADE_PERIOD/2; k < PWM_FADE_PERIOD; k += PWM_SLOW_ALERT_INC)
+            {
+                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, k);
+                k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
+            }
+            for(int l = PWM_FADE_PERIOD; l > PWM_FADE_PERIOD/2; l -= PWM_SLOW_ALERT_INC)
+            {
+                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, l);
+                k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
+            }
+        }
+    }
+    else if (*app_ctx[1] == bt_pag_conn(pag_c))
+    {
+        printk("Connection 2 Device addr: %s\n", page_addr);
+
+        for(int j = 0; j < (FAST_ALERT_NUM-1); j++)
+        {
+            for(int i = 0; i < PWM_FADE_PERIOD; i += PWM_FAST_ALERT_INC)
+            {
+                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, i);
+                k_usleep(PWM_FAST_ALERT_DELAY_US);
+            }
+        }
+    }
+
+    pwm_set_pulse_dt(&pwm_buzz, 0);
+        
 	return BT_GATT_ITER_CONTINUE;
 	// SWR things will happen
 }
@@ -341,12 +395,12 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 	printk("Filters matched. Address: %s connectable: %s\n",
 		   addr, connectable ? "yes" : "no");
 
-	err = bt_scan_stop();
-	if (err)
-	{
-		printk("Stop LE scan failed (err %d)\n", err);
-	}
-	else printk("Scanning stopped.\n");
+    err = bt_scan_stop();
+    if (err)
+        printk("Stop LE scan failed (err %d)\n", err);
+    else{
+        printk("Scanning stopped.\n");
+    }
 
 	conn_params = BT_CONN_LE_CREATE_PARAM(
 		BT_CONN_LE_OPT_CODED | BT_CONN_LE_OPT_NO_1M,
@@ -357,12 +411,12 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
         if (*app_ctx[i] == NULL) {
             // Connection slot is free
             err = bt_conn_le_create(device_info->recv_info->addr, conn_params,
-							            BT_LE_CONN_PARAM_DEFAULT, app_ctx[0]);
+							            BT_LE_CONN_PARAM_DEFAULT, app_ctx[i]);
             break;
         }
     }
 	
-	if (err)
+	if (err) 
 	{
 		printk("Create conn failed (err %d)\n", err);
 
@@ -373,8 +427,7 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 			return;
 		}
 	}
-
-	printk("Connection pending\n");
+    else printk("Connection pending\n");
 }
 
 BT_SCAN_CB_INIT(scan_cb, scan_filter_match, NULL, NULL, NULL);
@@ -418,7 +471,7 @@ static void scan_init(void)
 static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
 	int err;
-	struct bt_conn_info info;
+	//struct bt_conn_info info;
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -448,20 +501,20 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		return;
 	}
 
-	err = bt_conn_get_info(conn, &info);
+	// err = bt_conn_get_info(conn, &info);
 
-	if (err)
-	{
-		printk("Failed to get connection info\n");
-	}
-	else
-	{
-		const struct bt_conn_le_phy_info *phy_info;
+	// if (err)
+	// {
+	// 	printk("Failed to get connection info\n");
+	// }
+	// else
+	// {
+	// 	const struct bt_conn_le_phy_info *phy_info;
 
-		phy_info = info.le.phy;
-		printk("Connected: %s, tx_phy %u, rx_phy %u\n",
-			   addr, phy_info->tx_phy, phy_info->rx_phy);
-	}
+	// 	phy_info = info.le.phy;
+	// 	printk("Connected: %s, tx_phy %u, rx_phy %u\n",
+	// 		   addr, phy_info->tx_phy, phy_info->rx_phy);
+	//}
 
     for (size_t i = 0; i < 6; i++) {
         if (conn == *app_ctx[i])
@@ -477,6 +530,32 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 
                 conn_count++;
                 printk("Devices connected: %d\n", conn_count);
+
+                if(conn_count >= 2)//CONFIG_BT_MAX_CONN)
+                {
+                    printk("Max Connections. Stopping scan...  ");
+                    err = bt_scan_stop();
+                    if (err)
+                    {
+                        printk("Scanning failed to stop (err %d)\n", err);
+                    }
+                    else
+                    {
+                        printk("STOPPED\n");
+                        if(max_connected_alert)
+                        {
+                            for(i = 0; i < PWM_FADE_PERIOD; i += PWM_FADE_INC)
+                            {
+                                    pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, i);
+                                    k_msleep(PWM_FADE_DELAY_MS);
+                            }
+                            pwm_set_pulse_dt(&pwm_buzz, 0);
+                            printk("ALERT FOR MAXIMIM CONNECTIONS\n");
+                            max_connected_alert = false;
+                        }
+                    } 
+                }
+
                 return;
                 
             }
@@ -527,17 +606,17 @@ void pwr_down_thread(struct k_work *work_item)
     k_msleep(300);
 
     int button_held_count = 0;
-
+    int pulse_w = PWM_FADE_PERIOD;
     while(gpio_pin_get_dt(&button))
     {
-        k_msleep(50);
+        pwm_set_dt(&pwm_ledg, PWM_FADE_PERIOD, pulse_w);
+        k_msleep(HAPTIC_FADE_DELAY_MS); 
         button_held_count++;
-        //TODO green_pwm_fade down
-        gpio_pin_set_dt(&g_led, 1);
+        pulse_w -= (PWM_FADE_PERIOD / 4000);
         if(button_held_count > POWERON_COUNT) break;
     }
+    pwm_set_pulse_dt(&pwm_ledg, 0);
 
-    gpio_pin_set_dt(&g_led, 0);
 
     if(button_held_count >= POWERON_COUNT)
     {
@@ -560,12 +639,20 @@ void usb_detect_thread(struct k_work *work_item)
 {
     while(gpio_pin_get_dt(&usb_detect))
     {
-        gpio_pin_set_dt(&r_led, 1);
-        //red slow pwm pulse
+        for(int i = 0; i < PWM_FADE_PERIOD; i+=PWM_FADE_INC)
+        {
+            pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
+            k_msleep(PWM_FADE_DELAY_MS);
+        }
+        for(int i = PWM_FADE_PERIOD; i > 0; i-=PWM_FADE_INC)
+        {
+            pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
+            k_msleep(PWM_FADE_DELAY_MS);
+        }
+        pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, 0);
+        
         printk("USB PRESENT............\n");
-        k_msleep(1000);
-        gpio_pin_set_dt(&r_led, 0);
-        k_msleep(1000);
+        
     }
 
     printk("Powering Off: USB Removed.\n");
@@ -699,25 +786,23 @@ int main(void)
     else if(gpio_pin_get_dt(&button))
     {
         printk("BUTTON HELD CONDITION\n");
-        
         k_msleep(300);
 
-        
+        int pulse_w = 0;
         while(gpio_pin_get_dt(&button))
         {
-            k_msleep(50);
             button_held_count++;
-            //TODO green pwm fade up
-            gpio_pin_set_dt(&g_led, 1);
+            pwm_set_dt(&pwm_ledg, PWM_FADE_PERIOD, pulse_w);
+            k_msleep(PWM_FADE_DELAY_MS);
+            pulse_w += PWM_FADE_INC;
             if(button_held_count > POWERON_COUNT) break;
         }
-
-        gpio_pin_set_dt(&g_led, 0);
+        pwm_set_pulse_dt(&pwm_ledg, 0);
         k_msleep(300);
 
         while(gpio_pin_get_dt(&button))
         {
-            k_msleep(50);
+            k_msleep(1);
             button_held_count++;
 
             if(button_held_count > DFU_MODE_COUNT)
@@ -847,6 +932,11 @@ int main(void)
     while(1)
     {
 #endif
+        if(conn_count == 0)
+        {
+            max_connected_alert = true;
+        }
+        
         wdt_feed(wdt, wdt_channel_id);
 		k_msleep(BATTERY_CHECK_INTERVAL_MS);
         //TODO Indicate Less than max connected (still scanning)

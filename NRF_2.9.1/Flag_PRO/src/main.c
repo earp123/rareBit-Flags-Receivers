@@ -94,19 +94,19 @@ LOG_MODULE_REGISTER(PRO_FLAG, LOG_LEVEL_DBG);
 #define HAPTIC_PIN_NODE DT_ALIAS(led3)
 #endif
 
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(BUTTON_NODE, gpios);
-static const struct gpio_dt_spec r_led =  GPIO_DT_SPEC_GET(RED_LED_NODE, gpios);
-static const struct gpio_dt_spec g_led =  GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
-static const struct gpio_dt_spec b_led =  GPIO_DT_SPEC_GET(BLUE_LED_NODE, gpios);
-static const struct pwm_dt_spec  pwm_buzz = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
-static const struct gpio_dt_spec buzz_en = GPIO_DT_SPEC_GET(HAPTIC_PIN_NODE, gpios);
+static const struct gpio_dt_spec button =       GPIO_DT_SPEC_GET(BUTTON_NODE, gpios);
+static const struct gpio_dt_spec r_led =        GPIO_DT_SPEC_GET(RED_LED_NODE, gpios);
+//static const struct gpio_dt_spec g_led =      GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
+static const struct gpio_dt_spec b_led =        GPIO_DT_SPEC_GET(BLUE_LED_NODE, gpios);
+static const struct pwm_dt_spec  pwm_buzz =     PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
+static const struct gpio_dt_spec buzz_en =      GPIO_DT_SPEC_GET(HAPTIC_PIN_NODE, gpios);
 #if CONFIG_BOARD_PRO_FLAG
-// static const struct pwm_dt_spec pwm_ledr =    PWM_DT_SPEC_GET(PWM_RED_LED_NODE);
-// static const struct pwm_dt_spec pwm_ledg =    PWM_DT_SPEC_GET(PWM_GREEN_LED_NODE);
-// static const struct pwm_dt_spec pwm_ledb =    PWM_DT_SPEC_GET(PWM_BLUE_LED_NODE);
-static const struct gpio_dt_spec usb_detect = GPIO_DT_SPEC_GET(USB_DETECT_NODE, gpios);
-static const struct gpio_dt_spec stat_pin =   GPIO_DT_SPEC_GET(USB_STAT_NODE, gpios);
-static const struct gpio_dt_spec bat_en =     GPIO_DT_SPEC_GET(FACTORY_ENABLE_NODE, gpios);
+static const struct pwm_dt_spec pwm_ledr =      PWM_DT_SPEC_GET(PWM_RED_LED_NODE);
+static const struct pwm_dt_spec pwm_ledg =      PWM_DT_SPEC_GET(PWM_GREEN_LED_NODE);
+static const struct pwm_dt_spec pwm_ledb =      PWM_DT_SPEC_GET(PWM_BLUE_LED_NODE);
+static const struct gpio_dt_spec usb_detect =   GPIO_DT_SPEC_GET(USB_DETECT_NODE, gpios);
+static const struct gpio_dt_spec stat_pin =     GPIO_DT_SPEC_GET(USB_STAT_NODE, gpios);
+static const struct gpio_dt_spec bat_en =       GPIO_DT_SPEC_GET(FACTORY_ENABLE_NODE, gpios);
 #else
 static const struct pwm_dt_spec pwm_ledr = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 static const struct pwm_dt_spec pwm_ledg = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
@@ -131,26 +131,33 @@ const uint8_t page_d[] = {0x01};
 const uint8_t * page_p = page_d;
 
 //Advertising Timeout period ranges from EVENTS * MIN_INTERVAL to EVENTS * MAX_INTERVAL
-#define ADVERTISNG_TIMEOUT_EVENTS   200
+#define ADVERTISNG_TIMEOUT_EVENTS   255
 
 //static bool app_button_state = false;
 
 //Total fade up time is DELAY * PWM_STEPS
-#define HAPTIC_PWM_PERIOD_NS        500000
+#define HAPTIC_PWM_PERIOD           PWM_USEC(500)
 #define HAPTIC_FADE_DELAY_MS        1
 #define HAPTIC_PWM_STEPS            1000
+#define HAPTIC_PWM_INC              HAPTIC_PWM_PERIOD / HAPTIC_PWM_STEPS
 
-#define POWERON_COUNT               100  //in units of 50ms
-#define POWERDOWN_COUNT             100  //in units of 50ms
+#define PWM_FADE_PERIOD             PWM_USEC(500)
+#define PWM_FADE_DELAY_MS           1
+#define PWM_FADE_STEPS              2000            //TOTAL FADE DURATION = PWM_FADE_STEPS * PWM_FADE_DELAY_MS
+#define PWM_FADE_INC                PWM_FADE_PERIOD / PWM_FADE_STEPS
 
-#define DFU_MODE_COUNT              200  // should at least twice as long as POWERON_COUNT, in units of 50ms
+#define ADV_FADE_STEPS              1000
+#define ADV_FADE_DELAY_US           500
+#define ADV_FADE_INC                PWM_FADE_PERIOD / ADV_FADE_STEPS
+
+#define POWERON_COUNT               4000  //in ms plus a few extra
 
 #define POWERON_PWM_PERIOD_NS       500000
 #define POWERON_FADE_UP_DELAY_MS    1
 #define POWERON_PWM_STEPS           3000
 
 #define LOW_BATTERY_STATUS_MV       800
-#define LOW_BATTERY_STATUS_COUNT    100
+#define LOW_BATTERY_STATUS_COUNT    15
 #define BATTERY_CHECK_INTERVAL_MS   5000
 
 #define DEVICE_NAME "rareBit PRO Flag"
@@ -175,6 +182,14 @@ struct usb_work_info
     struct k_work work;
     char name[50];
 } usb_work;
+
+struct adv_work_info
+{
+    struct k_work work;
+    char name[50];
+} adv_work;
+
+bool indicate_adv = true;
 
 static struct bt_le_ext_adv *adv;
 struct bt_conn *conn_handle = NULL;
@@ -212,6 +227,7 @@ void start_advertising_coded(void)
     else 
 	{
 		printk("Bluetooth advertising started!\n");
+        k_work_submit_to_queue(&offload_work_q, &adv_work.work);
 	}
 }
 
@@ -223,15 +239,20 @@ static void advertising_max_events(struct bt_le_ext_adv *adv, struct bt_le_ext_a
 
     printk("Adertising finished with %d events.\n", adv_events);
 
-    //Giving time for the print buffer. 
-    //We need this under every print that occurs before PM_DEVICE_ACTION_SUSPEND.
-    k_msleep(1000);
+    //Turn off our advertising indicate fader
+    indicate_adv = false;
 
     //Effectively the timeout condition, but it's not a precise interval
     if (adv_events >= ADVERTISNG_TIMEOUT_EVENTS)
     {
         printk("Advertising timed out. Shutting down... \n");
-        k_msleep(2000);
+        k_msleep(500);
+        for(int i = HAPTIC_PWM_PERIOD; i > 0; i -= HAPTIC_PWM_INC)
+        {
+            pwm_set_dt(&pwm_buzz, HAPTIC_PWM_PERIOD, i);
+            k_msleep(HAPTIC_FADE_DELAY_MS);
+        }
+        pwm_set_pulse_dt(&pwm_buzz, 0);
         pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
         sys_poweroff();
     }
@@ -341,6 +362,13 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 		Slave latency: %u					 \n\
 		Connection supervisory timeout: %u	 \n"
 		, addr, info.role, info.le.interval, info.le.latency, info.le.timeout);
+
+        for(int i = 0; i < HAPTIC_PWM_PERIOD; i += HAPTIC_PWM_INC)
+        {
+            pwm_set_dt(&pwm_buzz, HAPTIC_PWM_PERIOD, i);
+            k_msleep(HAPTIC_FADE_DELAY_MS);
+        }
+        pwm_set_pulse_dt(&pwm_buzz, 0);
 	}
 }
 
@@ -351,6 +379,15 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
     k_sleep(K_MSEC(100));
 
     conn_handle = NULL;
+
+    gpio_pin_set_dt(&buzz_en, 1);
+    k_msleep(75);
+    gpio_pin_set_dt(&buzz_en, 0);
+    k_msleep(75);
+    gpio_pin_set_dt(&buzz_en, 1);
+    k_msleep(75);
+    gpio_pin_set_dt(&buzz_en, 0);
+
     start_advertising_coded();
 
 }
@@ -397,39 +434,70 @@ static struct bt_conn_cb conn_callbacks = {
 };
 
 
-void bt_pageAlert(struct bt_conn *conn, const uint8_t *data, uint16_t len)
-{
-    
-    // Send the notification
-    if(bt_gatt_notify(conn, page_alert_attr, data, len))
-    {
-        printk("Error, unable to send notification\n");
-        
-    }
-    else {
-        printk("Notified Peer of %d\n", (int) data[0]);
-    }
-
-}
-
-//TODO can probably combine these two functions /\ \/
 
 void bt_notify_thread(struct k_work *work_item)
 {
-
 	if ((conn_handle != NULL))
     {
-        bt_pageAlert(conn_handle, page_p, 1);
+        // Send the notification
+        if(bt_gatt_notify(conn_handle, page_alert_attr, page_p, 1))
+        {
+            printk("Error, unable to send notification\n");
+        }
+        else 
+        {
+            printk("Notified Peer of %d\n", (int) page_p[0]);
+
+            
+        
+            int safety_count = 0;
+            while(gpio_pin_get_dt(&button) && safety_count < 3000)
+            {
+                gpio_pin_set_dt(&buzz_en, 1);
+                safety_count++;
+                k_msleep(1);
+            }
+            gpio_pin_set_dt(&buzz_en, 0);
+            
+            //disable for a bit so as to prevent stacking notifications
+            gpio_pin_interrupt_configure_dt(&button, GPIO_INT_DISABLE);
+            k_busy_wait(5000000);
+            gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LOW_0);
+        }
+        gpio_pin_set_dt(&buzz_en, 0);
     }
-    
+    gpio_pin_set_dt(&buzz_en, 0);
     LOG_INF("Work thread executed.");
     k_yield();
+}
+
+void adv_fade_thread(struct k_work *work_tiem)
+{
+
+    int pulse_w = 0;
+    bool fade_toggle = true;
+    indicate_adv = true;
+    while(conn_handle == NULL && indicate_adv)
+    {
+        pwm_set_dt(&pwm_ledb, PWM_FADE_PERIOD, pulse_w);
+        if(fade_toggle) pulse_w += ADV_FADE_INC;
+        else            pulse_w -= ADV_FADE_INC;
+
+        if(pulse_w >= PWM_FADE_PERIOD)    fade_toggle = false;
+        else if (pulse_w <= ADV_FADE_INC) fade_toggle = true;
+        k_usleep(ADV_FADE_DELAY_US);
+    }
+    pwm_set_pulse_dt(&pwm_ledb, 0);
+    return;
+    
 }
 
 static void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
         k_work_submit_to_queue(&offload_work_q, &bt_work.work);
+        gpio_pin_set_dt(&buzz_en, 0);
         k_yield();
+        
 
 }
 
@@ -437,12 +505,20 @@ void usb_detect_thread(struct k_work *work_item)
 {
     while(gpio_pin_get_dt(&usb_detect))
     {
-        gpio_pin_set_dt(&r_led, 1);
-        //red slow pwm pulse
+        for(int i = 0; i < PWM_FADE_PERIOD; i+=PWM_FADE_INC)
+        {
+            pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
+            k_msleep(PWM_FADE_DELAY_MS);
+        }
+        for(int i = PWM_FADE_PERIOD; i > 0; i-=PWM_FADE_INC)
+        {
+            pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
+            k_msleep(PWM_FADE_DELAY_MS);
+        }
+        pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, 0);
+        
         printk("USB PRESENT............\n");
-        k_msleep(1000);
-        gpio_pin_set_dt(&r_led, 0);
-        k_msleep(1000);
+
     }
 
     printk("Powering Off: USB Removed.\n");
@@ -580,29 +656,28 @@ int main(void)
         printk("BUTTON HELD CONDITION\n");
         k_msleep(300);
 
-        
+        int pulse_w = 0;
         while(gpio_pin_get_dt(&button))
         {
-            k_msleep(50);
             button_held_count++;
-            //green_pwm_fade up
-            gpio_pin_set_dt(&g_led, 1);
+            pwm_set_dt(&pwm_ledg, PWM_FADE_PERIOD, pulse_w);
+            k_msleep(PWM_FADE_DELAY_MS);
+            pulse_w += PWM_FADE_INC;
             if(button_held_count > POWERON_COUNT) break;
         }
-
-        gpio_pin_set_dt(&g_led, 0);
+        pwm_set_pulse_dt(&pwm_ledg, 0);
 
     }
     if(button_held_count < POWERON_COUNT)
     {
         printk("Powering Off: Button not held long enough.\n");
-        k_msleep(3000);
+        k_msleep(2000);
+        pm_device_action_run(cons, PM_DEVICE_ACTION_SUSPEND);
         sys_poweroff();
-        k_msleep(3000);
     }
 #endif
 
-    // //Continues...
+    //Continues...
     printk("~~~~~~FLAG POWER ON~~~~~~~~~\n");
 
     wdt_channel_id = wdt_install_timeout(wdt, &wdt_config);
@@ -637,6 +712,10 @@ int main(void)
     strcpy(bt_work.name, "Bluetooth Notify thread");
     k_work_init(&bt_work.work, bt_notify_thread);
 
+    strcpy(adv_work.name, "Indicate Adv Blue Fader");
+    k_work_init(&adv_work.work, adv_fade_thread);
+                            
+
 #if COMPILE_ADC_PRINT
     init_adc();
     int low_batt_count = 0;
@@ -666,13 +745,15 @@ int main(void)
 
             LOG_INF("ADC: = %d mV, Low Batt Count = %d", val_mv, low_batt_count);
 
+
+
             if(low_batt_count >= LOW_BATTERY_STATUS_COUNT)
             {
                 gpio_pin_set_dt(&r_led, 1);
                 k_msleep(300);
                 gpio_pin_set_dt(&r_led, 0);
             }
-            else
+            else if(conn_handle != NULL)
             {
                 gpio_pin_set_dt(&b_led, 1);
                 k_msleep(150);
@@ -686,7 +767,7 @@ int main(void)
 #endif
         wdt_feed(wdt, wdt_channel_id);
 		k_msleep(BATTERY_CHECK_INTERVAL_MS);
-        //TODO Advertising Blink Rate
+
 	}
 
     return 0;

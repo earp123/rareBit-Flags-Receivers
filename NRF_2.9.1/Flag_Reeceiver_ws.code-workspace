@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "Flag_PRO"
+		},
+		{
+			"path": "PRO_Receiver"
+		}
+	],
+    "settings": {
+        "nrf-connect.applications": [],
+        "files.associations": {
+            "pwm.h": "c"
+        }
+    }
+}
