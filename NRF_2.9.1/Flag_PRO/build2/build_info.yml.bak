@@ -1,0 +1,6 @@
+west:
+  command: C:\ncs\toolchains\b620d30767\opt\bin\Scripts\west build --build-dir c:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO/build2
+    c:/Users/ralls/GitHub/rareBit-Flags-Receivers/NRF_2.9.1/Flag_PRO --pristine --board
+    nrf52840dk/nrf52840 --no-sysbuild -- -DNCS_TOOLCHAIN_VERSION=NONE -DBOARD_ROOT=c:/users/ralls/github/rarebit-flags-receivers;c:/ncs/v2.9.1/nrf/samples/bluetooth/peripheral_hr_coded
+  topdir: c:\ncs\v2.9.1
+  version: 1.2.0

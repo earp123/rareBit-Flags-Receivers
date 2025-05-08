@@ -1,0 +1,25 @@
+{
+    "format-version": 1,
+    "time": 1746469782,
+    "files": [
+        {
+            "load_address": 49664,
+            "version_MCUBOOT": "0.0.0+0",
+            "type": "application",
+            "board": "nrf52840dk",
+            "soc": "nrf52840",
+            "size": 210043,
+            "file": "app_update.bin",
+            "modtime": 1746469782
+        }
+    ],
+    "name": "Flag_PRO",
+    "firmware": {
+        "zephyr": {
+            "revision": "ca954a6216c986c1a1d978e9e42ff773a2c7155a-dirty"
+        },
+        "nrf": {
+            "revision": "60d0d6c8d42dd9c7bafe544a8fdf1234d6beb916"
+        }
+    }
+}

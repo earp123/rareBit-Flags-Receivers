@@ -1,16 +1,20 @@
 {
 	"folders": [
-		{
-			"path": "Flag_PRO"
-		},
-		{
-			"path": "PRO_Receiver"
-		}
-	],
+        {
+            "path": "Flag_PRO"
+        },
+        {
+            "path": "PRO_Receiver"
+        }
+    ],
     "settings": {
         "nrf-connect.applications": [],
         "files.associations": {
-            "pwm.h": "c"
+            "pwm.h": "c",
+            "conn.h": "c",
+            "compare": "c",
+            "hci_vs.h": "c",
+            "hci.h": "c"
         }
     }
 }

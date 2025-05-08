@@ -1,0 +1,13 @@
+# Generated file used for preloading a child image
+set(CMAKE_BUILD_TYPE "" CACHE INTERNAL "NCS child image controlled")
+set(CMAKE_VERBOSE_MAKEFILE "FALSE" CACHE INTERNAL "NCS child image controlled")
+set(BOARD_DIR "C:/ncs/v2.9.1/zephyr/boards/nordic/nrf52840dk" CACHE INTERNAL "NCS child image controlled")
+set(ZEPHYR_TOOLCHAIN_VARIANT "zephyr" CACHE INTERNAL "NCS child image controlled")
+set(CROSS_COMPILE "C:/ncs/toolchains/b620d30767/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-" CACHE INTERNAL "NCS child image controlled")
+set(NCS_TOOLCHAIN_VERSION "NONE" CACHE INTERNAL "NCS child image controlled")
+set(WEST_PYTHON "C:/ncs/toolchains/b620d30767/opt/bin/python.exe" CACHE INTERNAL "NCS child image controlled")
+set(BOARD_ROOT "c:/users/ralls/github/rarebit-flags-receivers;c:/ncs/v2.9.1/nrf/samples/bluetooth/peripheral_hr_coded" CACHE INTERNAL "NCS child image controlled")
+set(FILE_SUFFIX "" CACHE INTERNAL "NCS child image controlled")
+set(BOARD "nrf52840dk/nrf52840" CACHE INTERNAL "NCS child image controlled")
+set(EXTRA_CONF_FILE ";C:/ncs/v2.9.1/nrf/subsys/partition_manager/partition_manager_enabled.conf" CACHE INTERNAL "NCS child image controlled")
+set(EXTRA_DTC_OVERLAY_FILE ";C:/ncs/v2.9.1/nrf/modules/mcuboot/usb.overlay" CACHE INTERNAL "NCS child image controlled")

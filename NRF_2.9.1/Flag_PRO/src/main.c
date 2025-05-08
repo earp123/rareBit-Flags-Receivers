@@ -39,11 +39,11 @@
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
 #define COMPILE_ADC_PRINT   1
-#define COMPILE_ON_OFF      1
-#define COMPILE_AD_TIMEOUT  1
+#define COMPILE_ON_OFF      0
+#define COMPILE_AD_TIMEOUT  0
 
 
-#if COMPILE_ADC_PRINT
+#if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 
 static int16_t adc_buf;
@@ -115,14 +115,14 @@ static const struct pwm_dt_spec pwm_ledb = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 
 #define MAX_TRANSMIT_SIZE 240//TODO figure this out
 
-// Define the custom services and characteristics
 
+// Service: Paging Service UUID 23210001-28D5-4B7B-BA0F-7DEE1EEE1B6D
 #define PAGING_SERVICE_UUID 0x6d, 0x1b, 0xee, 0x1e, 0xee, 0x7d, 0xd0, 0xba, 0x7b, \
                             0x4b, 0xd5, 0x28, 0x01, 0x00, 0x21, 0x23
 
 // Characteristic: Paging Characteristic UUID 23210002-28D5-4B7B-BA0F-7DEE1EEE1B6D
 #define PAGE_ALERT_CHARACTERISTIC_UUID 0x6d, 0x1b, 0xee, 0x1e, 0xee, 0x7d, 0xd0, 0xba, 0x7b, \
-                                 0x4b, 0xd5, 0x28, 0x02, 0x00, 0x21, 0x23
+                            0x4b, 0xd5, 0x28, 0x02, 0x00, 0x21, 0x23
 
 #define BT_UUID_PAGING_SERVICE              BT_UUID_DECLARE_128(PAGING_SERVICE_UUID)
 #define BT_UUID_PAGE_ALERT_CHARACTERISTIC   BT_UUID_DECLARE_128(PAGE_ALERT_CHARACTERISTIC_UUID)
@@ -200,26 +200,27 @@ bool page_flag = false;
 // Bluetooth advertising data
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-    BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
-    BT_DATA_BYTES(BT_DATA_UUID128_ALL,
-		      0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
-		      0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d),
-    BT_DATA_BYTES(BT_DATA_UUID128_ALL, PAGING_SERVICE_UUID)
+    // BT_DATA_BYTES(BT_DATA_UUID128_ALL,
+	// 	      0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
+	// 	      0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d), //DFU Service
+    BT_DATA_BYTES(BT_DATA_UUID128_ALL, PAGING_SERVICE_UUID),
+    BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN)
 };
 
 void start_advertising_coded(void)
 {
     int err;
 
-    //timeout value doesn't seem to work here, the advertising sent function gets triggered even when the timeout doesn't occur
-    struct bt_le_ext_adv_start_param start_params;
 #if COMPILE_AD_TIMEOUT
-    //Minimum advertising intverval is 100ms, thus a timeout period of AT LEAST num_events*100ms
-    start_params.num_events = ADVERTISNG_TIMEOUT_EVENTS;
-#else
-    start_params.num_events = 0;
-#endif
+    //timeout value doesn't seem to work here, the advertising sent function gets triggered even when the timeout doesn't occur
+    const struct bt_le_ext_adv_start_param start_params = {
+        .num_events = ADVERTISNG_TIMEOUT_EVENTS
+    };
     err = bt_le_ext_adv_start(adv, &start_params);
+#else
+    err = bt_le_ext_adv_start(adv, BT_LE_EXT_ADV_START_DEFAULT);
+#endif
+    
     if(err)
     {
         printk("Error: Advertising NOT started. return %d\n", err);
@@ -231,7 +232,7 @@ void start_advertising_coded(void)
 	}
 }
 
-#if COMPILE_AD_TIMEOUT
+#if COMPILE_AD_TIMEOUT && CONFIG_BOARD_PRO_FLAG
 static void advertising_max_events(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_sent_info *info)
 {
 
@@ -276,10 +277,10 @@ static void create_advertising_coded(void)
     int err;
 
     static struct bt_le_adv_param params = BT_LE_ADV_PARAM_INIT(BT_LE_ADV_OPT_CONNECTABLE |
-                                                        BT_LE_ADV_OPT_CODED |
-                                                        BT_LE_ADV_OPT_EXT_ADV,
-                                                        BT_GAP_ADV_FAST_INT_MIN_2,
-                                                        BT_GAP_ADV_FAST_INT_MAX_2,
+                                                        BT_LE_ADV_OPT_EXT_ADV | 
+                                                        BT_LE_ADV_OPT_CODED,
+                                                        BT_GAP_ADV_FAST_INT_MIN_2, //100ms
+                                                        BT_GAP_ADV_FAST_INT_MAX_2, //150ms
                                                         NULL);
 #if COMPILE_AD_TIMEOUT
     static struct bt_le_ext_adv_cb advertising_cb =
@@ -289,17 +290,14 @@ static void create_advertising_coded(void)
 
 
     err = bt_le_ext_adv_create(&params, &advertising_cb, &adv);
-    if(err)
-    {
-        printk("Error %d could not create ext_adv.\n", err);
-    }
 #else
     err = bt_le_ext_adv_create(&params, NULL, &adv);
+#endif
     if(err)
     {
         printk("Error %d could not create ext_adv.\n", err);
     }
-#endif
+
     else printk("CODED PHY Advertising Configured.\n");
 
     err = bt_le_ext_adv_set_data(adv, ad, ARRAY_SIZE(ad), NULL, 0);
@@ -501,6 +499,7 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 
 }
 
+#if CONFIG_BOARD_PRO_FLAG
 void usb_detect_thread(struct k_work *work_item)
 {
     while(gpio_pin_get_dt(&usb_detect))
@@ -528,8 +527,9 @@ void usb_detect_thread(struct k_work *work_item)
     sys_poweroff();
 
 }
+#endif
 
-#if COMPILE_ADC_PRINT
+#if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG
 static void init_adc()
 {
     int err;
@@ -576,7 +576,7 @@ static void init_callbacks(void)
 static void init_pins(void)
 {
     int err;
-
+#if CONFIG_BOARD_PRO_FLAG
     //Enable Pin
     err = gpio_pin_configure_dt(&bat_en, GPIO_OUTPUT_HIGH);
     if (err < 0)
@@ -591,20 +591,6 @@ static void init_pins(void)
     else
         printk("Battery Status Iput configured\n");
 
-    //Button Pin
-    err = gpio_pin_configure_dt(&button, GPIO_INPUT);
-    if (err < 0)
-        printk("Button Input failed (err %d)\n", err);
-    else
-        printk("Button Input configured\n");
-
-    err = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LOW_0);
-    if (err < 0)
-        printk("Button pin interrupt configure failed with err %d\n", err);
-    else
-        printk("Button pin interrupt configured.\n");
-
-
     //USB Detect Pin
     err = gpio_pin_configure_dt(&usb_detect, GPIO_INPUT);
     if (err < 0)
@@ -618,6 +604,20 @@ static void init_pins(void)
         printk("USB Detect pin interrupt configure failed with err %d\n", err);
     else
         printk("USB Detect pin interrupt configured.\n");
+#endif
+
+    //Button Pin
+    err = gpio_pin_configure_dt(&button, GPIO_INPUT);
+    if (err < 0)
+        printk("Button Input failed (err %d)\n", err);
+    else
+        printk("Button Input configured\n");
+
+    err = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LOW_0);
+    if (err < 0)
+        printk("Button pin interrupt configure failed with err %d\n", err);
+    else
+        printk("Button pin interrupt configured.\n");
 
     
 }
@@ -634,6 +634,7 @@ int main(void)
     int button_held_count = 0;
     ARG_UNUSED(button_held_count);
 
+#if COMPILE_ON_OFF && CONFIG_BOARD_PRO_FLAG
     strcpy(usb_work.name, "USB Detect Thread");
     k_work_init(&usb_work.work, usb_detect_thread);
 
@@ -650,7 +651,7 @@ int main(void)
         }
         
     }
-#if COMPILE_ON_OFF
+
     else if(gpio_pin_get_dt(&button))
     {
         printk("BUTTON HELD CONDITION\n");
@@ -716,7 +717,7 @@ int main(void)
     k_work_init(&adv_work.work, adv_fade_thread);
                             
 
-#if COMPILE_ADC_PRINT
+#if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG
     init_adc();
     int low_batt_count = 0;
     while (1) {
