@@ -38,7 +38,7 @@
 
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
-#define COMPILE_ADC_PRINT   1
+#define COMPILE_ADC_PRINT   0
 #define COMPILE_ON_OFF      0
 #define COMPILE_AD_TIMEOUT  0
 
@@ -116,11 +116,11 @@ static const struct pwm_dt_spec pwm_ledb = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 #define MAX_TRANSMIT_SIZE 240//TODO figure this out
 
 
-// Service: Paging Service UUID 23210001-28D5-4B7B-BA0F-7DEE1EEE1B6D
+// Service: Paging Service UUID 23210001-28d5-4b7b-bad0-7dee1eee1b6d
 #define PAGING_SERVICE_UUID 0x6d, 0x1b, 0xee, 0x1e, 0xee, 0x7d, 0xd0, 0xba, 0x7b, \
                             0x4b, 0xd5, 0x28, 0x01, 0x00, 0x21, 0x23
 
-// Characteristic: Paging Characteristic UUID 23210002-28D5-4B7B-BA0F-7DEE1EEE1B6D
+// Characteristic: Paging Characteristic UUID 23210002-28d5-4b7b-bad0-7dee1eee1b6d
 #define PAGE_ALERT_CHARACTERISTIC_UUID 0x6d, 0x1b, 0xee, 0x1e, 0xee, 0x7d, 0xd0, 0xba, 0x7b, \
                             0x4b, 0xd5, 0x28, 0x02, 0x00, 0x21, 0x23
 

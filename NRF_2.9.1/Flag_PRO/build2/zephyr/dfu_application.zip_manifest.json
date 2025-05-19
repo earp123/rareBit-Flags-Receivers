@@ -1,6 +1,6 @@
 {
     "format-version": 1,
-    "time": 1746469782,
+    "time": 1746679944,
     "files": [
         {
             "load_address": 49664,
@@ -10,7 +10,7 @@
             "soc": "nrf52840",
             "size": 210043,
             "file": "app_update.bin",
-            "modtime": 1746469782
+            "modtime": 1746679944
         }
     ],
     "name": "Flag_PRO",
