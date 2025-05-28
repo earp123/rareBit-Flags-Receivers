@@ -41,8 +41,9 @@
 
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
-#define COMPILE_ADC_PRINT 1
-#define COMPILE_ON_OFF 1
+#define COMPILE_ADC_PRINT 0
+#define COMPILE_ON_OFF 0
+#define CONFIG_BOARD_PRO_RECEIVER 0
 
 
 #if COMPILE_ADC_PRINT
@@ -76,7 +77,7 @@ struct wdt_timeout_cfg wdt_config = {
 
 LOG_MODULE_REGISTER(PRO_RECV, LOG_LEVEL_DBG);
 
-#define CONFIG_BOARD_PRO_RECEIVER 1
+
 
 #define GREEN_LED_NODE      DT_ALIAS(led1)
 #define BLUE_LED_NODE       DT_ALIAS(led2)
@@ -147,6 +148,8 @@ static const struct pwm_dt_spec pwm_ledb = PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 
 #define LOW_BATTERY_STATUS_MV       800
 #define LOW_BATTERY_STATUS_COUNT    100
+#define FULL_BATTERY_STATUS_MV      1000
+#define FULL_BATTERY_STATUS_COUNT   15
 #define BATTERY_CHECK_INTERVAL_MS   5000
 
 #define DEVICE_NAME "rareBit PRO Receiver"
@@ -212,6 +215,7 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
 {
     page_addr[17] = '\0';
 
+    // TODO implement sorting through connections better
     // for(int n = 0; n < 6; n++)
     // {
     //     if(*app_ctx[n] == bt_pag_conn(pag_c))
@@ -220,10 +224,10 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
     //     }
     // }
 
-    //TODO disconnection gives a notification here, need to sort this
-
+    
     char addr[MAC_ADDRESS_LEN];
 
+    //This works for now
     bt_addr_le_to_str(bt_conn_get_dst(*app_ctx[0]), addr, sizeof(addr));
 
     if(!strcmp(page_addr, addr))
@@ -257,8 +261,9 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
             }
         }
     }
-
     pwm_set_pulse_dt(&pwm_buzz, 0);
+
+    //TODO disconnection gives a notification here, need to sort this
         
 	return BT_GATT_ITER_CONTINUE;
 	// SWR things will happen
@@ -473,6 +478,11 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 	int err;
 	//struct bt_conn_info info;
 	char addr[BT_ADDR_LE_STR_LEN];
+    struct bt_conn_le_phy_param phy_params = {
+        .options = BT_CONN_LE_PHY_OPT_CODED_S8,
+        .pref_rx_phy = BT_GAP_LE_PHY_CODED,
+        .pref_tx_phy = BT_GAP_LE_PHY_CODED
+    };
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
@@ -530,6 +540,10 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 
                 conn_count++;
                 printk("Devices connected: %d\n", conn_count);
+
+                err = bt_conn_le_phy_update(conn, &phy_params);
+                if(err) printk("Error updating Phy: %d\n", err);
+                else printk("Phy Updated to CODED S8\n");
 
                 if(conn_count >= 2)//CONFIG_BT_MAX_CONN)
                 {
@@ -635,10 +649,49 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 
 }
 
+#if CONFIG_BOARD_PRO_RECEIVER
 void usb_detect_thread(struct k_work *work_item)
 {
+    int err;
+    int full_batt_count = 0;
+
     while(gpio_pin_get_dt(&usb_detect))
     {
+#if COMPILE_ADC_PRINT
+        /* Read a sample from the ADC */
+		err = adc_read(adc_channel.dev, &sequence);
+		if (err < 0) {
+			LOG_ERR("Could not read (%d)", err);
+			continue;
+		}
+
+		val_mv = (int)adc_buf;//Might not need this
+
+		/* Convert raw value to mV*/
+		err = adc_raw_to_millivolts_dt(&adc_channel, &val_mv);
+		/* conversion to mV may not be supported, skip if not */
+		if (err < 0) {
+			LOG_WRN(" (value in mV not available)\n");
+		} 
+        else {
+			
+            if(val_mv > FULL_BATTERY_STATUS_MV)
+            {
+                full_batt_count++;
+            }
+            else full_batt_count = 0;
+
+            LOG_INF("ADC: = %d mV, Full Batt Count = %d", val_mv, full_batt_count);
+
+            if(full_batt_count >= FULL_BATTERY_STATUS_COUNT)
+            {
+                gpio_pin_set_dt(&g_led, 1);
+                break;
+            }
+            else gpio_pin_set_dt(&g_led, 0);
+		}
+#endif
+        //TODO gamma correct the faders
         for(int i = 0; i < PWM_FADE_PERIOD; i+=PWM_FADE_INC)
         {
             pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
@@ -652,7 +705,7 @@ void usb_detect_thread(struct k_work *work_item)
         pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, 0);
         
         printk("USB PRESENT............\n");
-        
+
     }
 
     printk("Powering Off: USB Removed.\n");
@@ -662,6 +715,7 @@ void usb_detect_thread(struct k_work *work_item)
     sys_poweroff();
 
 }
+#endif
 
 #if COMPILE_ADC_PRINT
 static void init_adc()
@@ -711,6 +765,19 @@ static void init_pins(void)
 {
     int err;
 
+    //Button Pin
+    err = gpio_pin_configure_dt(&button, GPIO_INPUT);
+    if (err < 0)
+        printk("Button Input failed (err %d)\n", err);
+    else
+        printk("Button Input configured\n");
+
+    err = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LOW_0);
+    if (err < 0)
+        printk("Button pin interrupt configure failed with err %d\n", err);
+    else
+        printk("Button pin interrupt configured.\n");
+#if CONFIG_BOARD_PRO_RECEIVER
     //Enable Pin
     err = gpio_pin_configure_dt(&bat_en, GPIO_OUTPUT_HIGH);
     if (err < 0)
@@ -725,20 +792,6 @@ static void init_pins(void)
     else
         printk("Battery Status Iput configured\n");
 
-    //Button Pin
-    err = gpio_pin_configure_dt(&button, GPIO_INPUT);
-    if (err < 0)
-        printk("Button Input failed (err %d)\n", err);
-    else
-        printk("Button Input configured\n");
-
-    err = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_LOW_0);
-    if (err < 0)
-        printk("Button pin interrupt configure failed with err %d\n", err);
-    else
-        printk("Button pin interrupt configured.\n");
-
-
     //USB Detect Pin
     err = gpio_pin_configure_dt(&usb_detect, GPIO_INPUT);
     if (err < 0)
@@ -752,16 +805,16 @@ static void init_pins(void)
         printk("USB Detect pin interrupt configure failed with err %d\n", err);
     else
         printk("USB Detect pin interrupt configured.\n");
-
+#endif
     
 }
 
 int main(void)
 {
     init_pins();
-#if COMPILE_ON_OFF
+#if COMPILE_ON_OFF && CONFIG_BOARD_PRO_RECEIVER
     int button_held_count = 0;
-#endif    
+    
 
     k_work_queue_start(&offload_work_q, my_stack_area, 
                         K_THREAD_STACK_SIZEOF(my_stack_area), 
@@ -775,6 +828,9 @@ int main(void)
         k_msleep(300);
         if(gpio_pin_get_dt(&usb_detect))
         {
+#if COMPILE_ADC_PRINT
+            init_adc();
+#endif
             printk("Jump to USB Detect Thread\n");
             k_work_submit_to_queue(&offload_work_q, &usb_work.work);
             k_yield();
@@ -782,7 +838,7 @@ int main(void)
         }
         
     }
-#if COMPILE_ON_OFF
+
     else if(gpio_pin_get_dt(&button))
     {
         printk("BUTTON HELD CONDITION\n");

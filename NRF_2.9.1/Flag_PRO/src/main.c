@@ -38,7 +38,7 @@
 
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
-#define COMPILE_ADC_PRINT   0
+#define COMPILE_ADC_PRINT   1
 #define COMPILE_ON_OFF      0
 #define COMPILE_AD_TIMEOUT  0
 
@@ -96,7 +96,7 @@ LOG_MODULE_REGISTER(PRO_FLAG, LOG_LEVEL_DBG);
 
 static const struct gpio_dt_spec button =       GPIO_DT_SPEC_GET(BUTTON_NODE, gpios);
 static const struct gpio_dt_spec r_led =        GPIO_DT_SPEC_GET(RED_LED_NODE, gpios);
-//static const struct gpio_dt_spec g_led =      GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
+static const struct gpio_dt_spec g_led =      GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
 static const struct gpio_dt_spec b_led =        GPIO_DT_SPEC_GET(BLUE_LED_NODE, gpios);
 static const struct pwm_dt_spec  pwm_buzz =     PWM_DT_SPEC_GET(HAPTIC_PWM_NODE);
 static const struct gpio_dt_spec buzz_en =      GPIO_DT_SPEC_GET(HAPTIC_PIN_NODE, gpios);
@@ -158,6 +158,9 @@ const uint8_t * page_p = page_d;
 
 #define LOW_BATTERY_STATUS_MV       800
 #define LOW_BATTERY_STATUS_COUNT    15
+#define FULL_BATTERY_STATUS_MV      1000
+#define FULL_BATTERY_STATUS_COUNT   15
+
 #define BATTERY_CHECK_INTERVAL_MS   5000
 
 #define DEVICE_NAME "rareBit PRO Flag"
@@ -287,8 +290,6 @@ static void create_advertising_coded(void)
         {
             .sent = advertising_max_events
         };
-
-
     err = bt_le_ext_adv_create(&params, &advertising_cb, &adv);
 #else
     err = bt_le_ext_adv_create(&params, NULL, &adv);
@@ -335,6 +336,11 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 
     struct bt_conn_info info;
     char addr[BT_ADDR_LE_STR_LEN];
+    struct bt_conn_le_phy_param phy_params = {
+        .options = BT_CONN_LE_PHY_OPT_CODED_S8,
+        .pref_rx_phy = BT_GAP_LE_PHY_CODED,
+        .pref_tx_phy = BT_GAP_LE_PHY_CODED
+    };
 
     conn_handle = conn;
 
@@ -360,6 +366,10 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 		Slave latency: %u					 \n\
 		Connection supervisory timeout: %u	 \n"
 		, addr, info.role, info.le.interval, info.le.latency, info.le.timeout);
+
+        err = bt_conn_le_phy_update(conn, &phy_params);
+        if(err) printk("Error updating Phy: %d\n", err);
+        else    printk("Phy Updated to CODED S8\n");
 
         for(int i = 0; i < HAPTIC_PWM_PERIOD; i += HAPTIC_PWM_INC)
         {
@@ -446,8 +456,6 @@ void bt_notify_thread(struct k_work *work_item)
         {
             printk("Notified Peer of %d\n", (int) page_p[0]);
 
-            
-        
             int safety_count = 0;
             while(gpio_pin_get_dt(&button) && safety_count < 3000)
             {
@@ -495,15 +503,51 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
         k_work_submit_to_queue(&offload_work_q, &bt_work.work);
         gpio_pin_set_dt(&buzz_en, 0);
         k_yield();
-        
-
 }
 
 #if CONFIG_BOARD_PRO_FLAG
 void usb_detect_thread(struct k_work *work_item)
 {
+    int err;
+    int full_batt_count = 0;
+
     while(gpio_pin_get_dt(&usb_detect))
     {
+#if COMPILE_ADC_PRINT
+        /* Read a sample from the ADC */
+		err = adc_read(adc_channel.dev, &sequence);
+		if (err < 0) {
+			LOG_ERR("Could not read (%d)", err);
+			continue;
+		}
+
+		val_mv = (int)adc_buf;//Might not need this
+
+		/* Convert raw value to mV*/
+		err = adc_raw_to_millivolts_dt(&adc_channel, &val_mv);
+		/* conversion to mV may not be supported, skip if not */
+		if (err < 0) {
+			LOG_WRN(" (value in mV not available)\n");
+		} 
+        else {
+			
+            if(val_mv > FULL_BATTERY_STATUS_MV)
+            {
+                full_batt_count++;
+            }
+            else full_batt_count = 0;
+
+            LOG_INF("ADC: = %d mV, Full Batt Count = %d", val_mv, full_batt_count);
+
+            if(full_batt_count >= FULL_BATTERY_STATUS_COUNT)
+            {
+                gpio_pin_set_dt(&g_led, 1);
+                break;
+            }
+            else gpio_pin_set_dt(&g_led, 0);
+		}
+#endif
+        //TODO gamma correct the faders
         for(int i = 0; i < PWM_FADE_PERIOD; i+=PWM_FADE_INC)
         {
             pwm_set_dt(&pwm_ledr, PWM_FADE_PERIOD, i);
@@ -635,6 +679,7 @@ int main(void)
     ARG_UNUSED(button_held_count);
 
 #if COMPILE_ON_OFF && CONFIG_BOARD_PRO_FLAG
+
     strcpy(usb_work.name, "USB Detect Thread");
     k_work_init(&usb_work.work, usb_detect_thread);
 
@@ -644,6 +689,9 @@ int main(void)
         k_msleep(300);
         if(gpio_pin_get_dt(&usb_detect))
         {
+#if COMPILE_ADC_PRINT
+            init_adc();
+#endif
             printk("Jump to USB Detect Thread\n");
             k_work_submit_to_queue(&offload_work_q, &usb_work.work);
             k_yield();
@@ -720,8 +768,10 @@ int main(void)
 #if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG
     init_adc();
     int low_batt_count = 0;
+#endif
     while (1) {
    
+#if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG
 		/* Read a sample from the ADC */
 		err = adc_read(adc_channel.dev, &sequence);
 		if (err < 0) {
@@ -734,9 +784,11 @@ int main(void)
 		/* Convert raw value to mV*/
 		err = adc_raw_to_millivolts_dt(&adc_channel, &val_mv);
 		/* conversion to mV may not be supported, skip if not */
-		if (err < 0) {
+		if (err < 0)
+        {
 			LOG_WRN(" (value in mV not available)\n");
-		} else {
+		} 
+        else {
 			
             if(val_mv < LOW_BATTERY_STATUS_MV)
             {
@@ -746,10 +798,10 @@ int main(void)
 
             LOG_INF("ADC: = %d mV, Low Batt Count = %d", val_mv, low_batt_count);
 
-
-
             if(low_batt_count >= LOW_BATTERY_STATUS_COUNT)
             {
+                //TODO disable DFU
+
                 gpio_pin_set_dt(&r_led, 1);
                 k_msleep(300);
                 gpio_pin_set_dt(&r_led, 0);
@@ -762,13 +814,9 @@ int main(void)
                 
             }
 		}
-#else
-    while(1)
-    {
 #endif
         wdt_feed(wdt, wdt_channel_id);
 		k_msleep(BATTERY_CHECK_INTERVAL_MS);
-
 	}
 
     return 0;

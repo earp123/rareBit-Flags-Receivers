@@ -1,6 +1,6 @@
 {
     "format-version": 1,
-    "time": 1746679696,
+    "time": 1748404639,
     "files": [
         {
             "load_address": 49664,
@@ -8,9 +8,9 @@
             "type": "application",
             "board": "pro_flag",
             "soc": "nRF52840_QIAA",
-            "size": 208271,
+            "size": 207814,
             "file": "app_update.bin",
-            "modtime": 1746679696
+            "modtime": 1748404638
         }
     ],
     "name": "Flag_PRO",
