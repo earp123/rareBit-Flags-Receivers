@@ -39,8 +39,8 @@
 const struct device *const cons = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
 #define COMPILE_ADC_PRINT   1
-#define COMPILE_ON_OFF      0
-#define COMPILE_AD_TIMEOUT  0
+#define COMPILE_ON_OFF      1
+#define COMPILE_AD_TIMEOUT  1
 
 
 #if COMPILE_ADC_PRINT && CONFIG_BOARD_PRO_FLAG

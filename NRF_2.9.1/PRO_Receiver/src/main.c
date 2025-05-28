@@ -224,46 +224,47 @@ static uint8_t notify_func(struct bt_pag_client *pag_c, uint8_t page_alert, char
     //     }
     // }
 
+    if(page_alert)
+    {
+        char addr[MAC_ADDRESS_LEN];
+
+        //This works for now
+        bt_addr_le_to_str(bt_conn_get_dst(*app_ctx[0]), addr, sizeof(addr));
+
+        if(!strcmp(page_addr, addr))
+        {
+            printk("Connection 1 Device addr: %s Sent: %d\n", page_addr, page_alert);
+
+            for(int m = 0; m < 5; m++)
+            {
+                for(int k = PWM_FADE_PERIOD/2; k < PWM_FADE_PERIOD; k += PWM_SLOW_ALERT_INC)
+                {
+                    pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, k);
+                    k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
+                }
+                for(int l = PWM_FADE_PERIOD; l > PWM_FADE_PERIOD/2; l -= PWM_SLOW_ALERT_INC)
+                {
+                    pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, l);
+                    k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
+                }
+            }
+        }
+        else if (*app_ctx[1] == bt_pag_conn(pag_c))
+        {
+            printk("Connection 2 DDevice addr: %s Sent: %d\n", page_addr, page_alert);
+
+            for(int j = 0; j < (FAST_ALERT_NUM-1); j++)
+            {
+                for(int i = 0; i < PWM_FADE_PERIOD; i += PWM_FAST_ALERT_INC)
+                {
+                    pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, i);
+                    k_usleep(PWM_FAST_ALERT_DELAY_US);
+                }
+            }
+        }
+        pwm_set_pulse_dt(&pwm_buzz, 0);
+    }
     
-    char addr[MAC_ADDRESS_LEN];
-
-    //This works for now
-    bt_addr_le_to_str(bt_conn_get_dst(*app_ctx[0]), addr, sizeof(addr));
-
-    if(!strcmp(page_addr, addr))
-    {
-        printk("Connection 1 Device addr: %s\n", page_addr);
-
-        for(int m = 0; m < 5; m++)
-        {
-            for(int k = PWM_FADE_PERIOD/2; k < PWM_FADE_PERIOD; k += PWM_SLOW_ALERT_INC)
-            {
-                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, k);
-                k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
-            }
-            for(int l = PWM_FADE_PERIOD; l > PWM_FADE_PERIOD/2; l -= PWM_SLOW_ALERT_INC)
-            {
-                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, l);
-                k_msleep(PWM_SLOW_ALERT_DLEAY_MS);
-            }
-        }
-    }
-    else if (*app_ctx[1] == bt_pag_conn(pag_c))
-    {
-        printk("Connection 2 Device addr: %s\n", page_addr);
-
-        for(int j = 0; j < (FAST_ALERT_NUM-1); j++)
-        {
-            for(int i = 0; i < PWM_FADE_PERIOD; i += PWM_FAST_ALERT_INC)
-            {
-                pwm_set_dt(&pwm_buzz, PWM_FADE_PERIOD, i);
-                k_usleep(PWM_FAST_ALERT_DELAY_US);
-            }
-        }
-    }
-    pwm_set_pulse_dt(&pwm_buzz, 0);
-
-    //TODO disconnection gives a notification here, need to sort this
         
 	return BT_GATT_ITER_CONTINUE;
 	// SWR things will happen
